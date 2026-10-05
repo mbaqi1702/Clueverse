@@ -16,6 +16,7 @@ type GuessRecord = {
 
 export function GameClient() {
   const [puzzle, setPuzzle] = useState<PublicPuzzle | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [guess, setGuess] = useState("");
   const [guesses, setGuesses] = useState<GuessRecord[]>([]);
   const [clues, setClues] = useState<Clue[]>([]);
@@ -23,10 +24,12 @@ export function GameClient() {
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
+
     fetch("/api/game/today")
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load today’s puzzle.");
@@ -36,7 +39,7 @@ export function GameClient() {
         if (active) setPuzzle(data);
       })
       .catch(() => {
-        if (active) setError("Today’s puzzle could not load. Please refresh to try again.");
+        if (active) setLoadError("Today’s mystery didn’t load. Check your connection and try again.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -44,7 +47,13 @@ export function GameClient() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadAttempt]);
+
+  function retryLoadPuzzle() {
+    setLoadError("");
+    setLoading(true);
+    setLoadAttempt((attempt) => attempt + 1);
+  }
 
   async function submitGuess(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -88,70 +97,104 @@ export function GameClient() {
   const attemptsLeft = puzzle ? puzzle.maxAttempts - guesses.length : 0;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 pb-10 pt-5 sm:px-8 sm:pt-8">
-      <header className="mb-10 flex items-center justify-between">
+    <main className="page-shell relative isolate mx-auto flex min-h-screen w-full max-w-6xl flex-col overflow-hidden px-5 pb-8 pt-5 sm:px-8 sm:pb-10 sm:pt-8">
+      <div aria-hidden="true" className="page-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem]" />
+      <header className="mb-12 flex items-center justify-between sm:mb-16">
         <Link className="flex items-center gap-3" href="/" aria-label="ClueVerse home">
-          <span className="grid size-10 place-items-center rounded-2xl bg-amber-300 text-lg font-black text-slate-950 shadow-lg shadow-amber-950/20">
+          <span className="brand-mark grid size-10 place-items-center rounded-2xl text-lg font-black text-slate-950">
             C
           </span>
           <span className="text-lg font-bold tracking-tight">
             clue<span className="text-amber-300">verse</span>
           </span>
         </Link>
-        <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300">
-          ANIME · DAILY PUZZLE
+        <div className="flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.035] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.13em] text-slate-300 sm:text-xs">
+          <span aria-hidden="true" className="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgb(110_231_183_/_65%)]" />
+          Anime <span className="text-slate-600">/</span> Daily puzzle
         </div>
       </header>
 
-      <section className="mb-7 text-center">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-amber-300">
-          A little mystery, every day
+      <section className="mb-9 text-center sm:mb-11">
+        <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.28em] text-amber-300 sm:text-xs">
+          Your daily dose of the unexpected
         </p>
-        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-          One clue closer.
+        <h1 className="text-[2.65rem] font-bold leading-[1.04] tracking-[-0.055em] text-white sm:text-6xl">
+          One clue <span className="headline-accent">closer.</span>
         </h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-400 sm:text-base">
-          Name the anime. Miss a guess, uncover a clue. See how far you get before the answer is revealed.
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-slate-400 sm:text-base sm:leading-7">
+          A story, a handful of hints, and one answer hiding in plain sight.
         </p>
       </section>
 
-      <div className="mx-auto grid w-full max-w-5xl gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="game-shell rounded-3xl border border-white/[0.08] p-5 shadow-2xl shadow-black/20 sm:p-8">
+      <div className="mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_292px] lg:gap-5">
+        <section className="game-shell rounded-[1.75rem] border border-white/[0.09] p-5 shadow-2xl shadow-black/25 sm:p-8">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Today’s puzzle
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                The daily case
               </p>
-              <p className="mt-1 text-sm font-medium text-slate-200">
-                {puzzle ? formatPuzzleDate(puzzle.date) : "Loading puzzle…"}
+              <p className="mt-1.5 text-sm font-semibold text-slate-200">
+                {puzzle ? formatPuzzleDate(puzzle.date) : "A new mystery awaits"}
               </p>
             </div>
-            <span className="rounded-full border border-amber-200/15 bg-amber-200/[0.07] px-3 py-1.5 text-xs font-semibold text-amber-200">
-              SAMPLE PUZZLE
+            <span className="rounded-full border border-amber-200/15 bg-amber-200/[0.07] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-200 sm:text-[10px]">
+              Original sample
             </span>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.07] bg-slate-950/35 p-5 sm:p-6">
-            <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-              <span className="size-1.5 rounded-full bg-amber-300" />
-              The opening clue
+          <div className="synopsis-card relative overflow-hidden rounded-2xl p-5 sm:p-7">
+            <div aria-hidden="true" className="synopsis-orbit absolute -right-8 -top-12 size-40 rounded-full" />
+            <div className="relative">
+              <div className="mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-800/75">
+                <span aria-hidden="true" className="text-base leading-none text-amber-600">✳</span>
+                The opening clue
+              </div>
+              {loading ? (
+                <div aria-label="Loading the daily mystery" className="space-y-3" role="status">
+                  <span className="sr-only">Loading today’s mystery…</span>
+                  <div className="h-3 w-full animate-pulse rounded-full bg-slate-900/10" />
+                  <div className="h-3 w-[92%] animate-pulse rounded-full bg-slate-900/10" />
+                  <div className="h-3 w-[68%] animate-pulse rounded-full bg-slate-900/10" />
+                </div>
+              ) : loadError ? (
+                <div role="alert">
+                  <p className="text-sm leading-6 text-slate-700">{loadError}</p>
+                  <button
+                    className="mt-4 rounded-lg border border-slate-900/15 px-3 py-2 text-xs font-bold text-slate-800 transition hover:bg-slate-900/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
+                    onClick={retryLoadPuzzle}
+                    type="button"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : (
+                <p className="max-w-2xl text-[15px] font-medium leading-7 text-slate-800 sm:text-base sm:leading-8">
+                  {puzzle?.synopsis}
+                </p>
+              )}
             </div>
-            <p className="text-[15px] leading-7 text-slate-100 sm:text-base">
-              {loading ? "Finding today’s mystery…" : puzzle?.synopsis}
-            </p>
           </div>
 
-          <div className="my-6" aria-label={`${attemptsLeft} attempts remaining`}>
-            <div className="mb-2 flex items-center justify-between text-xs font-medium">
-              <span className="text-slate-400">Attempts remaining</span>
-              <span className="text-slate-200">{puzzle ? `${attemptsLeft} of ${puzzle.maxAttempts}` : "—"}</span>
+          <div
+            aria-label="Attempts remaining"
+            aria-valuemax={puzzle?.maxAttempts ?? 5}
+            aria-valuemin={0}
+            aria-valuenow={attemptsLeft}
+            className="my-6"
+            role="progressbar"
+          >
+            <div className="mb-3 flex items-center justify-between text-xs font-medium">
+              <span className="text-slate-400">Your chances</span>
+              <span className="text-slate-200">
+                {puzzle ? `${attemptsLeft} ${attemptsLeft === 1 ? "guess" : "guesses"} left` : "—"}
+              </span>
             </div>
-            <div className="flex gap-2">
+            <div aria-hidden="true" className="flex gap-2">
               {Array.from({ length: puzzle?.maxAttempts ?? 5 }, (_, index) => (
                 <span
                   key={index}
-                  className={`h-1.5 flex-1 rounded-full ${
-                    index < attemptsLeft ? "bg-amber-300" : "bg-white/10"
+                  className={`h-1.5 flex-1 rounded-full transition-colors ${
+                    index < attemptsLeft ? "bg-amber-300" : "bg-white/[0.09]"
                   }`}
                 />
               ))}
@@ -178,14 +221,14 @@ export function GameClient() {
           )}
 
           {guesses.length > 0 && (
-            <ol className="mb-5 space-y-2" aria-label="Your guesses">
+            <ol aria-label="Your guesses" aria-live="polite" className="mb-5 space-y-2">
               {guesses.map((item, index) => (
                 <li
                   key={`${index}-${item.value}`}
-                  className="flex items-center justify-between rounded-xl bg-white/[0.025] px-4 py-3 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.045] bg-white/[0.025] px-4 py-3 text-sm"
                 >
-                  <span className="text-slate-300">{item.value}</span>
-                  <span className={item.result === "correct" ? "text-emerald-300" : "text-rose-300"}>
+                  <span className="truncate text-slate-300">{item.value}</span>
+                  <span className={`shrink-0 text-xs font-semibold ${item.result === "correct" ? "text-emerald-300" : "text-rose-300"}`}>
                     {item.result === "correct" ? "That’s it!" : "Not this one"}
                   </span>
                 </li>
@@ -193,23 +236,27 @@ export function GameClient() {
             </ol>
           )}
 
-          {status === "playing" ? (
+          {status === "playing" && puzzle ? (
             <form onSubmit={submitGuess}>
               <label className="mb-2 block text-sm font-semibold text-slate-200" htmlFor="anime-guess">
-                Your guess
+                What’s your answer?
               </label>
+              <p className="mb-3 text-xs text-slate-500" id="guess-help">
+                Take your best shot. Every miss reveals another clue.
+              </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   autoComplete="off"
+                  aria-describedby="guess-help"
                   id="anime-guess"
                   maxLength={100}
                   onChange={(event) => setGuess(event.target.value)}
-                  placeholder="Type an anime title…"
+                  placeholder="Type a title…"
                   value={guess}
                   disabled={loading || submitting || !puzzle}
                 />
                 <button
-                  className="h-12 shrink-0 rounded-xl bg-amber-300 px-6 text-sm font-bold text-slate-950 transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="guess-button h-12 shrink-0 rounded-xl px-6 text-sm font-bold text-slate-950 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-45"
                   disabled={loading || submitting || !guess.trim() || !puzzle}
                   type="submit"
                 >
@@ -218,7 +265,7 @@ export function GameClient() {
               </div>
               {error && <p className="mt-3 text-sm text-rose-300" role="alert">{error}</p>}
             </form>
-          ) : (
+          ) : status !== "playing" ? (
             <div
               className={`rounded-2xl border p-5 ${
                 status === "won"
@@ -234,24 +281,27 @@ export function GameClient() {
                 The answer was <span className="font-semibold text-amber-200">{answer}</span>.
               </p>
             </div>
-          )}
+          ) : null}
         </section>
 
         <aside className="space-y-4">
-          <section className="game-shell rounded-3xl border border-white/[0.08] p-5">
-            <h2 className="text-sm font-bold text-white">How to play</h2>
-            <ol className="mt-4 space-y-4">
+          <section className="game-shell rounded-[1.75rem] border border-white/[0.09] p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-white">How it works</h2>
+              <span aria-hidden="true" className="text-lg text-amber-300">✳</span>
+            </div>
+            <ol className="mt-5 space-y-4">
               {[
-                ["01", "Read the synopsis", "Every puzzle starts with one story clue."],
-                ["02", "Make a guess", "A wrong answer unlocks the next hint."],
-                ["03", "Solve the mystery", "Can you get it before the final clue?"],
+                ["01", "Start with the story", "Your first clue is already waiting."],
+                ["02", "Take a guess", "Each miss brings a new hint."],
+                ["03", "Find the title", "Solve it before your chances run out."],
               ].map(([number, title, description]) => (
-                <li className="flex gap-3" key={number}>
-                  <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-[10px] font-bold text-amber-200">
+                <li className="flex gap-3.5" key={number}>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-amber-200/10 bg-amber-200/[0.06] text-[10px] font-bold text-amber-200">
                     {number}
                   </span>
                   <div>
-                    <p className="text-xs font-semibold text-slate-200">{title}</p>
+                    <p className="text-[13px] font-semibold text-slate-200">{title}</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
                   </div>
                 </li>
@@ -259,17 +309,17 @@ export function GameClient() {
             </ol>
           </section>
 
-          <section className="rounded-3xl border border-indigo-200/10 bg-indigo-300/[0.05] p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-200">Prototype note</p>
-            <p className="mt-2 text-xs leading-5 text-slate-400">
-              This is an original sample puzzle while we review licensed anime data sources.               Progress is held in memory and resets if you reload the page.
+          <section className="note-card rounded-[1.5rem] border p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200">A note from the team</p>
+            <p className="mt-2.5 text-xs leading-5 text-slate-300">
+              This original sample lets us tune the game before we bring in licensed anime data. Guesses aren’t saved; refreshing starts a new round.
             </p>
           </section>
         </aside>
       </div>
 
-      <footer className="mt-auto pt-10 text-center text-xs text-slate-600">
-        A fresh mystery, every day <span className="px-1.5">·</span> Built for curious fans
+      <footer className="mt-auto pt-12 text-center text-[10px] font-medium tracking-wide text-slate-600 sm:pt-14 sm:text-xs">
+        Made for curious minds <span className="px-1.5 text-amber-300/60">✳</span> Come back for another mystery tomorrow
       </footer>
     </main>
   );

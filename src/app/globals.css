@@ -2,11 +2,11 @@
 
 :root {
   color-scheme: dark;
-  --background: #10131d;
+  --background: #10121a;
   --foreground: #f5f2eb;
   --muted: #a2a6b3;
-  --accent: #f6bd60;
-  --panel: #191d29;
+  --accent: #f4bd70;
+  --panel: #191c26;
   --line: rgb(255 255 255 / 9%);
 }
 
@@ -22,10 +22,11 @@
 
 body {
   background:
-    radial-gradient(ellipse at 50% -25%, rgb(83 77 112 / 35%), transparent 55%),
+    radial-gradient(ellipse at 50% -30%, rgb(82 75 105 / 30%), transparent 58%),
+    radial-gradient(ellipse at 0% 70%, rgb(37 54 63 / 15%), transparent 45%),
     var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
 }
 
 button,
@@ -39,7 +40,59 @@ input {
 }
 
 .game-shell {
-  background: linear-gradient(145deg, rgb(255 255 255 / 4%), transparent 55%), var(--panel);
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 4%), transparent 45%),
+    linear-gradient(180deg, #1b1e29, #171a24);
+}
+
+.page-glow {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(159 117 68 / 15%), transparent 58%),
+    radial-gradient(ellipse at 75% 55%, rgb(82 75 115 / 13%), transparent 55%);
+  mask-image: linear-gradient(to bottom, black 35%, transparent);
+}
+
+.brand-mark {
+  background: linear-gradient(145deg, #ffdaa0, #eaa956);
+  box-shadow: 0 8px 28px rgb(234 169 86 / 17%), inset 0 1px 0 rgb(255 255 255 / 70%);
+}
+
+.headline-accent {
+  background: linear-gradient(100deg, #ffe0a4 3%, #f2b766 54%, #e9a7a0 100%);
+  background-clip: text;
+  color: transparent;
+}
+
+.synopsis-card {
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 68%), transparent 70%),
+    #eee4cf;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 82%), 0 14px 36px rgb(4 6 12 / 10%);
+}
+
+.synopsis-orbit {
+  border: 1px solid rgb(127 92 47 / 10%);
+  box-shadow:
+    0 0 0 14px rgb(127 92 47 / 3%),
+    0 0 0 28px rgb(127 92 47 / 2%);
+}
+
+.guess-button {
+  background: linear-gradient(135deg, #ffdda1, #f2ba69);
+  box-shadow: 0 6px 18px rgb(231 170 91 / 12%), inset 0 1px 0 rgb(255 255 255 / 75%);
+}
+
+.guess-button:not(:disabled):hover {
+  background: linear-gradient(135deg, #ffe8c1, #ffca7c);
+  box-shadow: 0 8px 22px rgb(231 170 91 / 19%), inset 0 1px 0 rgb(255 255 255 / 85%);
+  transform: translateY(-1px);
+}
+
+.note-card {
+  border-color: rgb(244 189 112 / 12%);
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(244 189 112 / 8%), transparent 55%),
+    rgb(255 255 255 / 2%);
 }
 
 .clue-card {
@@ -65,5 +118,11 @@ input {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .page-shell {
+    padding-inline: 1rem;
   }
 }
