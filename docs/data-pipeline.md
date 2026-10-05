@@ -31,6 +31,12 @@ When adding TMDB or Google Books later, add a source adapter that maps its provi
 
 The player reads only the selected puzzle and the currently unlocked clue from our server/database. Never serialize the answer, aliases, or unrevealed clues in the initial response. Puzzle assignment is stable for a date; provider refreshes do not change an active puzzle.
 
-Once Supabase-backed serving is implemented, the public, answer-free daily puzzle response can use short CDN caching (for example, `s-maxage=300, stale-while-revalidate=3600`). Guess submission and private attempt state stay uncached. Do not cache a response containing the answer or unrevealed clues. We do not need Redis for this scale; measure traffic and cache misses before adding another service.
+### Read-only game integration
 
-The current deployed-slice prototype still uses one original sample puzzle in code. The database migration and importer prepare the catalog; switching game reads to Supabase is a follow-up implementation after the schema is applied and some records are reviewed.
+The game API can read the current UTC date's puzzle from Supabase when `GAME_DATA_SOURCE=supabase` is set. It uses the server-only `SUPABASE_SECRET_KEY` to read a `scheduled` or `published` puzzle whose media is anime and `approved`; it makes no database writes. The secret key must never be exposed to the client. The mapper derives four progressive clues from reviewed genres and metadata (release year, format, episode count, and studio) and refuses to serve a scheduled record if it lacks enough clue attributes.
+
+`GAME_DATA_SOURCE` defaults to `sample`, preserving the original fictional puzzle. Enable Supabase mode only after the intended project and RLS have been verified, provider rights have been reviewed, and a human has approved and scheduled a sufficiently complete record. In Supabase mode, a missing date entry, invalid record, or database/configuration error returns an unavailable response; the sample is not used as a fallback.
+
+The API currently uses `no-store`, including in Supabase mode. After rights and deployment behavior are verified, the public, answer-free daily puzzle response could use short CDN caching (for example, `s-maxage=300, stale-while-revalidate=3600`). Guess submission and private attempt state must stay uncached. Do not cache a response containing the answer or unrevealed clues. We do not need Redis for this scale; measure traffic and cache misses before adding another service.
+
+The game still defaults to one original sample puzzle. Supabase-backed reads are opt-in and require a reviewed, approved, sufficiently complete puzzle scheduled for the current UTC date.

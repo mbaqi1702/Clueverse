@@ -1,6 +1,6 @@
 # ClueVerse progress and handoff
 
-Last updated: 2026-10-04
+Last updated: 2026-10-05
 
 ## Product aim
 
@@ -8,44 +8,47 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 ## Current repository state
 
-- Current branch: `feat/daily-anime-puzzle`.
-- Pushed commits:
+- Current branch: `feat/supabase-read-only-puzzles`, based on the merged `main`.
+- The first feature PR (#1) is merged. The UI/UX follow-up PR (#2) is open separately and its CI and Vercel deployment passed.
+- Merged commits:
   - `8bcced8` — first playable daily puzzle slice.
   - `05f9ba6` — Supabase catalog schema and Jikan import preparation.
+- The Supabase integration branch is in progress; it has not been pushed or opened as a PR yet.
 - The first playable UI uses an original fictional sample puzzle. The daily answer and clues stay server-side; wrong guesses reveal a clue, guesses are normalized, and the round ends after five attempts.
-- The UI is responsive and has loading/error states, keyboard form submission, and reduced-motion support. It is a foundation, not final visual polish: do more UX and visual iterations with 21st.dev and preview feedback.
+- The UI is responsive and has loading/error states, keyboard form submission, and reduced-motion support. UI/UX improvements are in PR #2: clearer visual hierarchy, a warm opening clue, accessible attempt progress, and load retry behavior. Preview feedback and narrow-screen review remain.
+- An opt-in server-only Supabase read path is implemented on this branch. It requires `GAME_DATA_SOURCE=supabase`, reads only approved anime puzzles scheduled/published for the current UTC date, and returns an explicit 503 when no eligible puzzle exists. Default mode remains the fictional sample.
 - 21st.dev CLI login and component search were verified. One free component retrieval was used to inform the custom input component. Keep catalog search as the low-cost default; check usage before paid retrieval/generation.
 - GitHub Actions CI runs tests, lint, and build.
-- Local validation at handoff: 20 tests pass; lint passes; production build passes; production dependency audit reported zero vulnerabilities.
-- `.env.local` is ignored by Git. `.env.example` contains names only and should remain trackable. Never print, commit, or share secret values.
+- Local validation on the database iteration: 28 tests passed; lint and production build passed. The read-only Supabase request confirmed no approved puzzle is scheduled for 2026-10-05 UTC. Production dependency audit reports zero vulnerabilities; the full audit reports five high-severity findings in the existing ESLint development dependency tree.
+- `.env.local` is ignored by Git. `.env.example` contains blank secret placeholders and a sample-mode default. Never print, commit, or share secret values.
 - The local dev server was stopped when pausing work.
 
 ## Data status
 
-- The Supabase catalog migration was manually applied by the project owner on 2026-10-04, per their confirmation. Verify the correct Supabase project and table/RLS state before further database writes.
+- The project owner confirmed the intended Supabase project migration and RLS state on 2026-10-05. No database writes were made during the read-path work.
 - Schema includes typed common media fields (including `synopsis`), source provenance/snapshots, aliases, genres/studios, review status, and scheduled daily puzzles. Only approved records can be scheduled/published.
 - Jikan importer supports paged fetching, validation, source IDs/attribution metadata, retry/backoff, and idempotent batched upserts. It defaults to a one-page dry run; writing requires explicit `--apply`.
 - **No Jikan records have been fetched or written by this project yet.** No provider terms/reuse permissions have been confirmed. Do not publicly display third-party metadata or images until a human reviews the relevant terms and attribution requirements.
-- Game API/UI still uses the fictional sample puzzle; it is not connected to Supabase yet.
+- Game API/UI defaults to the fictional sample. The opt-in Supabase read path was exercised locally against the configured project and correctly returned no scheduled approved puzzle for 2026-10-05 UTC. No synopsis or answer data was printed during that check.
 - No TMDB, Google Books, or other provider adapter is implemented. Add one only when that vertical is in scope, using its own mapping and terms review.
 
 ## Next steps when resuming
 
-1. Check whether the existing first PR has been created/submitted; it was not submitted during the earlier interactive GitHub prompt. Do not create duplicates; update or open one PR for `feat/daily-anime-puzzle` against `main`.
-2. Verify that the migration is present in the intended Supabase project and RLS is enabled on all catalog tables.
+1. Complete, validate, and open a review PR for `feat/supabase-read-only-puzzles`; Supabase reads are opt-in and must remain disabled until reviewed records are ready.
+2. The project owner confirmed the intended Supabase migration and RLS state on 2026-10-05. Keep database reads read-only; do not import or change database records without explicit approval.
 3. Human-review Jikan/MyAnimeList terms: synopsis reuse, attribution, public display, rate limits, images, and retention. If uncertain, keep using original/independently licensed content.
 4. Run `npm run import:jikan` only after confirming network use is acceptable; inspect the dry-run counts. This does not write to Supabase.
 5. Only after explicit human approval, run a small `npm run import:jikan -- --apply` batch. Review pending rows for data quality and rights before approving or scheduling any puzzle.
-6. Implement a server-only Supabase repository and connect today's puzzle endpoint to approved `daily_puzzles` data. Keep the answer, aliases, and unrevealed clues off the client. Add tests for repository behavior and answer privacy before switching off the sample.
-7. Add caching only to the public answer-free daily-puzzle response after DB-backed serving exists. Keep guesses/private attempt state uncached. No Redis yet.
-8. Iterate on UI/UX after viewing the Vercel preview: hierarchy, mobile layout, keyboard/accessibility, loading/error/empty states, end-of-game, result/share card. Use 21st.dev search/retrieval deliberately and keep a consistent design system.
-9. Once core daily play is proven, consider anonymous persistence/auth, streak/history, and then leaderboards. Add other media sources later.
+6. Enable `GAME_DATA_SOURCE=supabase` only after a sufficiently complete, approved puzzle is scheduled for the current UTC date. The read path checks for approved anime, derives four clues from reviewed metadata, and never exposes the answer/aliases/unrevealed clues in the initial response.
+7. The API still uses `no-store`. Consider caching only the public answer-free daily-puzzle response after deployment and rights behavior are verified; keep guesses/private attempt state uncached. No Redis yet.
+8. Continue UI/UX iteration using narrow-screen checks, keyboard/accessibility review, loading/error/end states, and preview feedback. Use 21st.dev search before selected component retrieval; maintain one consistent design system.
+9. Add further provider adapters (for example, movies or books) only after choosing the next vertical and checking its licensing, attribution, and reuse terms. Once core daily play is proven, consider anonymous persistence/auth, streak/history, and then leaderboards.
 
 ## Token-economy handoff for a new chat
 
 Paste this summary to resume without re-reading the whole conversation:
 
-> We are building ClueVerse in `C:\Users\muham\2026\Projects\clueverse`, branch `feat/daily-anime-puzzle`. It is a daily media guessing game, anime first, with a longer-term plan for movies/TV/books/manga. Stack: Next.js 16, TypeScript, Tailwind, Supabase Postgres, Vercel, GitHub Actions, and 21st.dev MCP for UI component discovery. Current branch has commits `8bcced8` (playable fictional sample puzzle; server-side guess checking; responsive UI; 15 tests/CI) and `05f9ba6` (typed Supabase catalog migration, Jikan mapper/import script, provenance/review workflow; 20 total tests). The owner says the migration has been applied. No Jikan data has been fetched/imported, provider rights are not reviewed, and gameplay still uses the fictional sample. The Jikan importer is dry-run by default; `--apply` writes data. Verify the Supabase target/RLS and review Jikan/MyAnimeList terms before import/public use. `.env.local` is ignored; never display or share its values. `.env.example` is safe/tracked. First ensure/open a single PR for this branch—the earlier interactive create-PR prompt was not submitted. Next: verify migration, terms review, dry run, human-approved small import, then implement server-only Supabase puzzle reads with answer privacy and cache only answer-free responses. Continue using short specs, acceptance tests, limited relevant context, CI and Vercel preview review; improve the UI iteratively with 21st.dev search before paid generation.
+> ClueVerse is in `C:\Users\muham\2026\Projects\clueverse`, currently on `feat/supabase-read-only-puzzles`. First feature PR #1 is merged. UI/UX PR #2 (`feat/ui-ux-round-1`) is open; its CI and Vercel deployment passed. The current branch adds a server-only, read-only Supabase puzzle path gated by `GAME_DATA_SOURCE=supabase`; default remains the original fictional sample. A local read against the confirmed Supabase project found no approved puzzle scheduled for 2026-10-05 UTC and made no writes. The owner confirmed migration/RLS, but Jikan/MyAnimeList rights are not reviewed and no provider records have been imported. The importer defaults to dry-run; `--apply` writes and requires human approval. `.env.local` is ignored; never display or share its values. Before enabling DB mode, review provider permissions, approve a complete record, and schedule it. Add further providers only after selecting the next vertical and reviewing its terms.
 
 ## Workflow / token-cost habits
 
