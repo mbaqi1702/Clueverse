@@ -13,7 +13,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 - Merged commits:
   - `8bcced8` — first playable daily puzzle slice.
   - `05f9ba6` — Supabase catalog schema and Jikan import preparation.
-- The Supabase integration branch is in progress; it has not been pushed or opened as a PR yet.
+- The Supabase read-path changes are open in PR #3; CI and the Vercel preview deployment passed.
 - The first playable UI uses an original fictional sample puzzle. The daily answer and clues stay server-side; wrong guesses reveal a clue, guesses are normalized, and the round ends after five attempts.
 - The UI is responsive and has loading/error states, keyboard form submission, and reduced-motion support. UI/UX improvements are in PR #2: clearer visual hierarchy, a warm opening clue, accessible attempt progress, and load retry behavior. Preview feedback and narrow-screen review remain.
 - An opt-in server-only Supabase read path is implemented on this branch. It requires `GAME_DATA_SOURCE=supabase`, reads only approved anime puzzles scheduled/published for the current UTC date, and returns an explicit 503 when no eligible puzzle exists. Default mode remains the fictional sample.
@@ -34,7 +34,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 ## Next steps when resuming
 
-1. Complete, validate, and open a review PR for `feat/supabase-read-only-puzzles`; Supabase reads are opt-in and must remain disabled until reviewed records are ready.
+1. Review and merge PR #3; keep Supabase mode disabled until reviewed records are ready.
 2. The project owner confirmed the intended Supabase migration and RLS state on 2026-10-05. Keep database reads read-only; do not import or change database records without explicit approval.
 3. Human-review Jikan/MyAnimeList terms: synopsis reuse, attribution, public display, rate limits, images, and retention. If uncertain, keep using original/independently licensed content.
 4. Run `npm run import:jikan` only after confirming network use is acceptable; inspect the dry-run counts. This does not write to Supabase.
@@ -48,7 +48,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 Paste this summary to resume without re-reading the whole conversation:
 
-> ClueVerse is in `C:\Users\muham\2026\Projects\clueverse`, currently on `feat/supabase-read-only-puzzles`. First feature PR #1 is merged. UI/UX PR #2 (`feat/ui-ux-round-1`) is open; its CI and Vercel deployment passed. The current branch adds a server-only, read-only Supabase puzzle path gated by `GAME_DATA_SOURCE=supabase`; default remains the original fictional sample. A local read against the confirmed Supabase project found no approved puzzle scheduled for 2026-10-05 UTC and made no writes. The owner confirmed migration/RLS, but Jikan/MyAnimeList rights are not reviewed and no provider records have been imported. The importer defaults to dry-run; `--apply` writes and requires human approval. `.env.local` is ignored; never display or share its values. Before enabling DB mode, review provider permissions, approve a complete record, and schedule it. Add further providers only after selecting the next vertical and reviewing its terms.
+> ClueVerse is in `C:\Users\muham\2026\Projects\clueverse`, currently on `feat/supabase-read-only-puzzles`. First feature PR #1 is merged. UI/UX PR #2 (`feat/ui-ux-round-1`) and read-only Supabase PR #3 are open; both have passing CI and Vercel deployments. Supabase mode is gated by `GAME_DATA_SOURCE=supabase`; default remains the original fictional sample. A local read against the confirmed Supabase project found no approved puzzle scheduled for 2026-10-05 UTC and made no writes. The owner confirmed migration/RLS, but Jikan/MyAnimeList rights are not reviewed and no provider records have been imported. The importer defaults to dry-run; `--apply` writes and requires human approval. `.env.local` is ignored; never display or share its values. Before enabling DB mode, review provider permissions, approve a complete record, and schedule it. Add further providers only after selecting the next vertical and reviewing its terms.
 
 ## Workflow / token-cost habits
 
