@@ -1,6 +1,6 @@
 # ClueVerse progress and handoff
 
-Last updated: 2026-10-05 17:05 +03:00
+Last updated: 2026-10-07 19:40 +03:00
 
 ## Product aim
 
@@ -13,7 +13,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 - UI/UX PR #2 was merged into `main` on 2026-10-05. The paper-and-ink redesign, responsive layout, accessibility affordances, and loading/retry states are now part of the default branch.
 - Merged commits:
   - `8bcced8` — first playable daily puzzle slice.
-  - `05f9ba6` — Supabase catalog schema and Jikan import preparation.
+  - `05f9ba6` — Supabase catalog schema and importer preparation.
   - `cae2e18` — merge of PR #2, the editorial UI redesign.
 - PR #3, “Add opt-in read-only Supabase puzzle serving,” is still open. GitHub currently reports merge conflicts; resolve against current `main`, rerun CI, and review before merging. The branch adds an opt-in server-only database read path; sample mode remains the default.
 - The first playable UI uses an original fictional sample puzzle. The daily answer and clues stay server-side; wrong guesses reveal a clue, guesses are normalized, and the round ends after five attempts.
@@ -27,23 +27,28 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 - The project owner confirmed the intended Supabase project migration and RLS state on 2026-10-05. The schema and importer are in `main`; the runtime reader is still in unmerged PR #3.
 - The catalog schema includes typed common media fields (including `synopsis`), source provenance/snapshots, aliases, genres/studios, review status, and scheduled daily puzzles. Only approved records can be scheduled/published.
-- Jikan importer supports paged fetching, validation, source IDs/attribution metadata, retry/backoff, and idempotent batched upserts. It defaults to a one-page dry run; writing requires explicit `--apply`.
-- **No Jikan records have been fetched or written by this project yet.** Provider terms/reuse permissions have not been confirmed. Do not publicly display third-party metadata or images until a human reviews the relevant terms and attribution requirements.
-- The configured Supabase project is reported provisioned with the migration and RLS applied, but it has no imported/approved catalog or scheduled puzzle. This means the database foundation exists; a populated, end-to-end production puzzle source is not ready yet.
+- The Tenrai importer supports paged fetching, validation, source IDs/attribution metadata, retry/backoff, a five-record dry-run preview, and idempotent batched upserts. It defaults to a one-page no-write dry run; writing requires explicit `--apply`.
+- The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai as the API source. Tenrai's current API responded during research. The Jikan public API did not accept TCP connections in the owner's environment and is no longer used by the importer.
+- **Initial import completed 2026-10-07:** the approved top 100 Tenrai pages contained 2,500 fetched entries. After an intermittent API failure on page 8, the import resumed from that page and completed: 2,296 usable records written, 204 rejected by validation. The dry run made no writes. A direct Supabase count verified 2,296 Tenrai source records. All but the one scheduled puzzle remain pending review; images are not imported.
+- **First puzzle approved and scheduled:** Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) is approved for `2026-10-08`; the schedule was verified in Supabase. The other imported rows remain pending review.
+- The configured Supabase project has the catalog migration/RLS and Tenrai import RPC migration applied. The catalog now has an approved scheduled puzzle; production readiness still depends on resolving PR #3 and verifying the end-to-end player flow/privacy.
 - Game API/UI still defaults to the fictional sample puzzle. PR #3's opt-in server-only, read-only Supabase path explicitly returns unavailable if no approved puzzle is scheduled.
 - No TMDB, Google Books, or other provider adapter is implemented. Add one only when that vertical is in scope, using its own mapping and terms review.
 
 ## Immediate next steps
 
-1. Resolve PR #3's merge conflicts against `main`, preserve its opt-in/sample-default behavior, rerun tests/lint/build, then merge after review.
-2. Review source terms and decide what content can be used publicly before importing or scheduling provider data.
-3. Follow the staged database, anime-catalog, and additional-source work in [`milestones.md`](./milestones.md). Do not turn on Supabase mode until an approved puzzle is scheduled and the end-to-end API privacy checks pass.
+1. Review the other 2,295 imported records individually; leave unsuitable records pending or reject them.
+2. Resolve PR #3's merge conflicts against `main`, preserve its opt-in/sample-default behavior, rerun tests/lint/build, then merge after review.
+3. Validate that the scheduled 2026-10-08 puzzle serves via the server-only Supabase route without leaking the answer or unrevealed clues before enabling database mode.
+4. After the read path is proven, implement random daily selection from approved eligible records while persisting one stable puzzle per UTC date.
 
 ## Token-economy handoff for a new chat
 
-Paste this summary to resume without re-reading the whole conversation:
+Current handoff: PR #3 has merge conflicts in `README.md` and `progress.md`; 2,296 Tenrai records are imported, Fullmetal Alchemist: Brotherhood is approved/scheduled for 2026-10-08, and the other 2,295 records await review. Resolve PR #3 and verify answer privacy before enabling Supabase mode.
 
-> ClueVerse's latest `main` includes merged PR #2's paper-and-ink UI redesign. PR #3 (opt-in, read-only Supabase puzzle serving) is still open and currently has merge conflicts. The Supabase catalog schema/import tooling are in `main`, and the owner reported that the intended project has the migration and RLS applied, but there are no imported/approved records or scheduled puzzles. Gameplay remains on the original fictional sample by default. No Jikan records have been imported and provider rights are not reviewed; importing requires a dry run followed by explicit `--apply`. See `milestones.md` for staged DB readiness, the first approved anime puzzle, and subsequent source adapters. Keep `.env.local` secret and untracked.
+The original handoff below is retained as historical context and is outdated:
+
+> ClueVerse's latest `main` includes merged PR #2's paper-and-ink UI redesign. PR #3 (opt-in, read-only Supabase puzzle serving) remains open with merge conflicts. The project owner reports the catalog/RLS and Tenrai RPC migrations applied and MyAnimeList terms reviewed for the intended use. Tenrai is selected; the Jikan public API is no longer used. On 2026-10-07 the owner approved the first batch (24 usable records; one rejected) and Fullmetal Alchemist: Brotherhood (MAL ID 5114) was approved and scheduled for 2026-10-08. The other imported records remain pending review. Next resolve PR #3 and verify scheduled puzzle serving/privacy before enabling Supabase mode. Gameplay still uses the fictional sample by default. See `milestones.md` and `docs/data-pipeline.md`; keep `.env.local` secret and untracked.
 
 ## Workflow / token-cost habits
 

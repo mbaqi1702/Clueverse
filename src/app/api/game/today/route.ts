@@ -1,11 +1,30 @@
 import { NextResponse } from "next/server";
-import { getPublicPuzzle, dailyPuzzle } from "@/lib/game/content";
+import { dailyPuzzle, getPublicPuzzle } from "@/lib/game/content";
 import { evaluateGuess } from "@/lib/game/guess";
+import { getPuzzleForDate } from "@/lib/game/puzzle-source";
+
+const noStore = { "Cache-Control": "no-store" };
+
+function currentPuzzleDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function unavailableResponse(error: unknown) {
+  console.error("Could not retrieve the configured daily puzzle.", error);
+  return NextResponse.json(
+    { error: "Today's puzzle is currently unavailable. Please try again later." },
+    { status: 503, headers: noStore },
+  );
+}
 
 export async function GET() {
-  return NextResponse.json(getPublicPuzzle(dailyPuzzle), {
-    headers: { "Cache-Control": "no-store" },
-  });
+  const date = currentPuzzleDate();
+  try {
+    const puzzle = await getPuzzleForDate(date);
+    return NextResponse.json(getPublicPuzzle(puzzle, date), { headers: noStore });
+  } catch (error) {
+    return unavailableResponse(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -43,7 +62,18 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json(evaluateGuess(guess, attemptNumber), {
-    headers: { "Cache-Control": "no-store" },
-  });
+  const date = currentPuzzleDate();
+  try {
+    const puzzle = await getPuzzleForDate(date);
+    if (attemptNumber > puzzle.maxAttempts) {
+      return NextResponse.json(
+        { error: "Enter a guess of 1–100 characters and a valid attempt number." },
+        { status: 400, headers: noStore },
+      );
+    }
+
+    return NextResponse.json(evaluateGuess(guess, attemptNumber, puzzle), { headers: noStore });
+  } catch (error) {
+    return unavailableResponse(error);
+  }
 }

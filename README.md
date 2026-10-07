@@ -36,9 +36,9 @@ The catalog schema is media-type aware but intentionally conservative. Common fi
 
 ## Data and licensing
 
-Anime is the first catalog. A Jikan importer and Supabase schema are prepared, but Jikan is an unofficial API that scrapes MyAnimeList. Before publishing any provider-sourced synopsis, title, image, or other content, review the applicable terms, attribution, rate limits, and reuse permissions. Imported records remain pending review until cleared. No provider data or images should be assumed licensed for public display.
+Anime is the first catalog. A Tenrai importer and Supabase schema are prepared. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner has reviewed MyAnimeList's terms for the intended use. Imported records remain pending review until individually curated and approved. Images are not imported.
 
-The current gameplay prototype still uses one original fictional sample puzzle. The Supabase catalog schema and Jikan importer are in `main`; runtime database serving is being added separately in PR #3. The importer defaults to a no-write dry run; a real import requires an explicit `--apply` flag and prior human review of provider terms. See [the data-pipeline guide](./docs/data-pipeline.md) for the schema, import, review, refresh, and caching plan.
+The current gameplay prototype still uses one original fictional sample puzzle. The Supabase catalog schema and Tenrai importer are available; runtime database serving is being added separately in PR #3. The approved top-100-page import added 2,296 usable records to Supabase; records remain pending review until individually approved. The importer defaults to a no-write dry run; a real import requires an explicit `--apply` flag and separate human approval. See [the data-pipeline guide](./docs/data-pipeline.md) for the schema, import, review, refresh, and caching plan.
 
 ## Local development
 
@@ -57,8 +57,8 @@ Useful commands:
 npm test
 npm run lint
 npm run build
-npm run import:jikan                 # one-page dry run; does not write to Supabase
-npm run import:jikan -- --apply      # explicit write; only after provider review
+npm run import:tenrai                 # one-page dry run; does not write to Supabase
+npm run import:tenrai -- --apply      # explicit write; requires separate approval
 ```
 
 ## Spec-driven workflow
@@ -76,4 +76,4 @@ See [the daily puzzle specification](./docs/specs/daily-anime-puzzle.md) and [pr
 
 ## Current state
 
-The first responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. The Supabase catalog migration and Jikan import tooling are in `main`; PR #3 adds the opt-in read-only runtime path and currently needs its merge conflicts resolved. No Jikan data has been imported, and the game still defaults to its fictional sample puzzle. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).
+The first responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. The Supabase catalog contains 2,296 usable Tenrai records; one is approved and scheduled, while the rest await review. PR #3 adds the opt-in read-only runtime path and currently has merge conflicts. The game still defaults to its fictional sample puzzle. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).
