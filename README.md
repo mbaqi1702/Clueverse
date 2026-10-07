@@ -36,9 +36,9 @@ The catalog schema is media-type aware but intentionally conservative. Common fi
 
 ## Data and licensing
 
-Anime is the first catalog. A Jikan importer and Supabase schema are prepared, but Jikan is an unofficial API that scrapes MyAnimeList. Before publishing any provider-sourced synopsis, title, image, or other content, review the applicable terms, attribution, rate limits, and reuse permissions. Imported records remain pending review until cleared. No provider data or images should be assumed licensed for public display.
+Anime is the first catalog. A Tenrai importer and Supabase schema are prepared. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner has reviewed MyAnimeList's terms for the intended use. Imported records remain pending review until individually curated and approved. Images are not imported.
 
-Gameplay defaults to one original fictional sample puzzle. An opt-in, server-only read path can serve an approved anime puzzle scheduled in Supabase when `GAME_DATA_SOURCE=supabase`; it does not write to the database and does not fall back to the sample if the scheduled puzzle is unavailable. The Jikan importer defaults to a no-write dry run; a real import requires an explicit `--apply` flag and human approval. See [the data-pipeline guide](./docs/data-pipeline.md) for the schema, import, review, refresh, and caching plan.
+The current gameplay prototype still uses one original fictional sample puzzle. The Supabase catalog schema and Tenrai importer are available; runtime database serving is being added separately in PR #3. The approved top-100-page import added 2,296 usable records to Supabase; records remain pending review until individually approved. The importer defaults to a no-write dry run; a real import requires an explicit `--apply` flag and separate human approval. See [the data-pipeline guide](./docs/data-pipeline.md) for the schema, import, review, refresh, and caching plan.
 
 ## Local development
 
@@ -49,7 +49,7 @@ npm ci
 npm run dev
 ```
 
-The sample gameplay does not require Supabase credentials. `GAME_DATA_SOURCE` defaults to `sample`; set it to `supabase` only after an approved anime puzzle is scheduled for the current UTC date. Supabase mode reads approved, scheduled puzzle data server-side and returns an explicit unavailable response when the database is not configured or has no eligible puzzle; it does not fall back to sample content. The import script reads `.env.local` when you opt into importing. `.env.example` contains blank secret placeholders and the non-secret sample-mode default. Never commit `.env.local`, paste secret values into chat, expose `SUPABASE_SECRET_KEY` to browser code, or put it in a `NEXT_PUBLIC_*` variable.
+The current sample gameplay does not require Supabase credentials. The import script reads `.env.local` when you opt into importing. `.env.example` lists variable names only. Never commit `.env.local`, paste secret values into chat, expose `SUPABASE_SECRET_KEY` to browser code, or put it in a `NEXT_PUBLIC_*` variable.
 
 Useful commands:
 
@@ -57,8 +57,8 @@ Useful commands:
 npm test
 npm run lint
 npm run build
-npm run import:jikan                 # one-page dry run; does not write to Supabase
-npm run import:jikan -- --apply      # explicit write; only after provider review
+npm run import:tenrai                 # one-page dry run; does not write to Supabase
+npm run import:tenrai -- --apply      # explicit write; requires separate approval
 ```
 
 ## Spec-driven workflow
@@ -76,4 +76,4 @@ See [the daily puzzle specification](./docs/specs/daily-anime-puzzle.md) and [pr
 
 ## Current state
 
-The first responsive puzzle slice and server-validated guessing flow are implemented. The Supabase catalog migration, Jikan import tooling, and an opt-in server-only read path for approved scheduled puzzles are in place. The default game still uses the fictional sample, and no Jikan data has been imported; provider rights still need human review. Current work and the next safe steps are recorded in [`progress.md`](./progress.md).
+The first responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. The Supabase catalog contains 2,296 usable Tenrai records; one is approved and scheduled, while the rest await review. PR #3 adds the opt-in read-only runtime path and currently has merge conflicts. The game still defaults to its fictional sample puzzle. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).
