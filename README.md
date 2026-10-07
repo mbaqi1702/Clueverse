@@ -38,7 +38,7 @@ The catalog schema is media-type aware but intentionally conservative. Common fi
 
 Anime is the first catalog. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner reports reviewing MyAnimeList's terms for the intended use. The Tenrai importer automatically approves records only when they have a sufficiently long synopsis, at least four playable clue attributes, and are not explicitly rated Rx/Hentai. Other provider integrations are not implemented and will require their own terms, attribution, and eligibility review. Images are not imported.
 
-The game defaults to one original fictional sample puzzle. Merged PR #3 adds opt-in Supabase runtime serving. A follow-up migration enables stable random daily assignment from approved, playable anime and promotes eligible Tenrai records without per-title approvals. The previous top-100-page import added 2,296 usable records; only records meeting the playability rules can be selected. Imports still require an explicit `--apply`; source ingestion is not scheduled automatically. See [the data-pipeline guide](./docs/data-pipeline.md) for setup and provider-specific policy.
+Production uses the Supabase catalog for its daily puzzle; local development defaults to the original fictional sample. Merged PRs #3 and #5 added server-only database serving, stable random daily assignment, and automatic eligibility for Tenrai entries that meet the documented data-quality/content-rating rules. The daily-random migration has been applied to the configured Supabase project, and Vercel Production has `GAME_DATA_SOURCE=supabase`. The imported top-100-page catalog contains 2,296 usable entries; no per-title approval is required for eligible Tenrai records, but each new import remains an explicit operator action using `--apply`. Only Tenrai is integrated. See [the data-pipeline guide](./docs/data-pipeline.md) and [next steps / handoff](./docs/next-steps.md).
 
 ## Local development
 
@@ -72,8 +72,8 @@ Every meaningful feature starts with a concise specification: user behavior, acc
 5. Pull request with CI, design notes, and a Vercel preview for UI changes.
 6. Human review and merge; production deployment remains an explicit human-controlled step.
 
-See [the daily puzzle specification](./docs/specs/daily-anime-puzzle.md) and [progress / handoff notes](./progress.md).
+See [the daily puzzle specification](./docs/specs/daily-anime-puzzle.md), [progress / handoff notes](./progress.md), and the [post-launch next-steps handoff](./docs/next-steps.md).
 
 ## Current state
 
-The responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. PR #3 is merged and Supabase serving remains opt-in; sample mode is still the default. The original 2,296-record Tenrai catalog has one manually scheduled puzzle on October 8, 2026. The new daily-assignment migration must be applied before subsequent dates are randomly assigned. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).
+The responsive game, server-validated guessing flow, Supabase-backed production puzzle, and stable daily assignment are deployed. The already scheduled Fullmetal Alchemist: Brotherhood puzzle is served for 2026-10-08 UTC; subsequent dates are assigned from eligible records when first requested. PRs #3, #5, and #6 are merged. Current operational status and prioritized follow-up work are in [`progress.md`](./progress.md), [`milestones.md`](./milestones.md), and the [next-steps handoff](./docs/next-steps.md).
