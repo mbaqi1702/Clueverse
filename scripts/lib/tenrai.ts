@@ -1,4 +1,4 @@
-export type JikanImportRecord = {
+export type TenraiImportRecord = {
   provider_id: string;
   title: string;
   original_title: string | null;
@@ -29,7 +29,7 @@ function textList(value: unknown): string[] {
     .filter((item): item is string => item !== null);
 }
 
-export function mapJikanAnime(value: unknown): JikanImportRecord | null {
+export function mapTenraiAnime(value: unknown): TenraiImportRecord | null {
   if (
     !isRecord(value) ||
     typeof value.mal_id !== "number" ||
@@ -82,8 +82,7 @@ export function mapJikanAnime(value: unknown): JikanImportRecord | null {
     genres: textList(value.genres),
     studios: textList(value.studios),
     source_url: `https://myanimelist.net/anime/${sourceId}`,
-    attribution_text:
-      "Metadata retrieved through Jikan REST API v4; source record is MyAnimeList. Attribution and reuse terms require review before publication.",
+    attribution_text: "Metadata retrieved through Tenrai API v1; source record is MyAnimeList. MyAnimeList terms reviewed by the project owner for intended use.",
   };
 }
 
@@ -91,7 +90,7 @@ export function parseImportPages(value: string | undefined): number {
   if (value === undefined) return 1;
   const pages = Number(value);
   if (!Number.isInteger(pages) || pages < 1 || pages > 100) {
-    throw new RangeError("JIKAN_IMPORT_PAGES must be an integer from 1 to 100.");
+    throw new RangeError("TENRAI_IMPORT_PAGES must be an integer from 1 to 100.");
   }
   return pages;
 }

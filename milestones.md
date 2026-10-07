@@ -5,9 +5,9 @@ This roadmap makes database readiness and additional content sources explicit, s
 ## Current position
 
 - **UI foundation — complete:** PR #2 is merged. The daily puzzle has a responsive paper-and-ink design, accessible structure, and loading/retry states.
-- **Catalog foundation — provisioned, not populated:** The Supabase catalog migration and Jikan importer are in `main`. The project owner reported that the intended Supabase project has the migration and RLS applied. No provider records or approved daily puzzles have been imported.
+- **Catalog foundation — 2,296 Tenrai records imported:** The project owner approved importing the top 100 pages; 2,296 usable records are now in Supabase, with 204 rejected by mapper validation. Fullmetal Alchemist: Brotherhood is approved and scheduled for 2026-10-08; the other records remain pending review.
 - **Database-backed gameplay — in progress:** PR #3 adds opt-in read-only serving, but is open with merge conflicts. Sample mode remains the default. Do not enable database mode in production before resolving the PR, scheduling an approved puzzle, and validating the full player flow.
-- **External sources — not cleared:** Jikan is the only importer prepared. No provider terms or reuse permissions have been confirmed, and no records have been imported. TMDB, Google Books, and other providers are candidates only, not selected or approved sources.
+- **External source — selected; initial import complete:** Tenrai is selected as the MyAnimeList metadata API. The project owner reports reviewing MyAnimeList terms for the intended use. The Jikan public API is unavailable and is no longer the selected endpoint. One of the 2,296 imported usable records is approved and scheduled; the other 2,295 await curation. TMDB, Google Books, and other providers are candidates only, not selected or approved sources.
 
 ## Milestone 1 — Merge safe database-backed puzzle serving
 
@@ -25,22 +25,22 @@ Acceptance criteria:
 
 ## Milestone 2 — Clear and document the first source
 
-**Status: Blocked on human review**
+**Status: Owner review reported complete; Tenrai selected**
 
-Before fetching or publishing provider-sourced content, review current Jikan and MyAnimeList terms and document what is permitted for each field.
+The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai, a third-party API for MyAnimeList-sourced metadata. Tenrai service availability and limits remain operational dependencies; imported rows stay pending review until individually curated.
 
 Acceptance criteria:
 
-- A human records the decision for synopsis text, titles/aliases, attribution, public display, rate limits, retention, and images.
+- The project owner reports reviewing MyAnimeList's terms for the intended use; Tenrai attribution is stored with each imported record.
 - Any content without clear permission is excluded from import or kept out of public puzzles.
 - The selected source fields and attribution are visible to reviewers alongside each catalog record.
 - If terms are uncertain or disallow the needed use, use original or independently licensed puzzle content instead.
 
 ## Milestone 3 — Populate and curate the anime catalog
 
-**Status: Not started; depends on Milestones 1 and 2**
+**Status: Import complete; curation in progress**
 
-Start with a small, controlled import. Keep imported records pending review and schedule only records explicitly approved for public use.
+The approved top-100-page Tenrai import completed with 2,296 usable records and 204 rejected entries. Fullmetal Alchemist: Brotherhood is approved and scheduled for 2026-10-08; keep the remaining records pending review until individually cleared.
 
 Acceptance criteria:
 
@@ -64,6 +64,7 @@ Acceptance criteria:
 - No scheduled puzzle, database outage, invalid row, or missing secret fails explicitly; there is no hidden sample fallback in Supabase mode.
 - RLS and server-only credentials are rechecked; migration/setup and recovery steps are documented.
 - Staging/preview is verified before any human-approved production switch. Keep caching limited to public, answer-free data.
+- Once the read path is proven, choose the daily anime randomly from the curated, approved eligible catalog, but persist the date assignment so every player gets the same puzzle for that UTC day.
 
 ## Milestone 5 — Add additional media sources one at a time
 

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "import:jikan": "tsx scripts/import-jikan.ts"
+    "import:tenrai": "tsx scripts/import-tenrai.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
