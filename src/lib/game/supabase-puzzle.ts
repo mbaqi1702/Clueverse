@@ -13,6 +13,17 @@ export async function getSupabasePuzzleForDate(date: string) {
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const { data: assignedMediaId, error: assignmentError } = await supabase.rpc(
+    "get_or_create_daily_anime_puzzle",
+    { p_puzzle_date: date },
+  );
+  if (assignmentError) {
+    throw new Error(`Supabase daily puzzle assignment failed: ${assignmentError.message}`);
+  }
+  if (typeof assignedMediaId !== "string") {
+    throw new Error("Supabase daily puzzle assignment returned an invalid media id.");
+  }
+
   const { data, error } = await supabase
     .from("daily_puzzles")
     .select(`
@@ -34,6 +45,7 @@ export async function getSupabasePuzzleForDate(date: string) {
       )
     `)
     .eq("puzzle_date", date)
+    .eq("media_id", assignedMediaId)
     .in("status", ["scheduled", "published"])
     .eq("media.media_type", "anime")
     .eq("media.review_status", "approved")
