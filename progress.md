@@ -1,6 +1,6 @@
 # ClueVerse progress and handoff
 
-Last updated: 2026-10-07 22:53 +03:00
+Last updated: 2026-10-08 00:56 +03:00
 
 ## Product aim
 
@@ -8,14 +8,15 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 ## Current repository state
 
-- PR #3 has merged to `main` (merge commit `d69ff17`); the daily-random/automatic-Tenrai-eligibility follow-up is being developed separately.
+- PR #3, #5, and #6 have merged to `main`. The production deployment is running the Next.js app with Supabase as its game data source.
 - The first feature PR, #1, was merged into `main` on 2026-10-05. Its CI passed and Vercel reported a successful preview deployment.
 - UI/UX PR #2 was merged into `main` on 2026-10-05. The paper-and-ink redesign, responsive layout, accessibility affordances, and loading/retry states are now part of the default branch.
 - Merged commits:
   - `8bcced8` — first playable daily puzzle slice.
   - `05f9ba6` — Supabase catalog schema and importer preparation.
   - `cae2e18` — merge of PR #2, the editorial UI redesign.
-- PR #3, “Add opt-in read-only Supabase puzzle serving,” is merged. Supabase remains opt-in and sample mode is still the default.
+- PR #3 added opt-in server-only Supabase reads; PR #5 added persisted random daily assignment and Tenrai eligibility; PR #6 removed the obsolete “Original sample puzzle” footer.
+- Vercel was corrected from the “Other” framework preset to Next.js after the production alias returned 404. The merged main deployment was redeployed, the production alias now serves the app, and the production API was verified.
 - The first playable UI uses an original fictional sample puzzle. The daily answer and clues stay server-side; wrong guesses reveal a clue, guesses are normalized, and the round ends after five attempts.
 - The UI has loading/error states, keyboard form submission, reduced-motion support, landmarks, and a skip link. The merged redesign passed local tests, lint, build, and Impeccable scans at 390px and 1440px; PR #2 CI and Vercel checks passed.
 - 21st.dev CLI login and component search were verified. One free component retrieval was used to inform the custom input component. Keep catalog search as the low-cost default; check usage before paid retrieval/generation.
@@ -25,31 +26,25 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 ## Data status
 
-- The project owner confirmed the intended Supabase project migration and RLS state on 2026-10-05. The schema, Tenrai importer, and opt-in runtime reader are in `main`; the new daily-assignment migration is being developed separately.
+- The project owner confirmed the catalog/RLS setup and reported applying the daily-assignment migration on 2026-10-08. Production Vercel has `GAME_DATA_SOURCE=supabase` and the Supabase server credentials configured.
 - The catalog schema includes typed common media fields (including `synopsis`), source provenance/snapshots, aliases, genres/studios, review status, and scheduled daily puzzles. Only approved records can be scheduled/published.
 - The Tenrai importer supports paged fetching, validation, source IDs/attribution metadata, retry/backoff, a five-record dry-run preview, and idempotent batched upserts. It defaults to a one-page no-write dry run; writing requires explicit `--apply`.
 - The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai as the only implemented provider. Other providers still need separate terms, attribution, adapters, and eligibility rules.
 - **Initial import completed 2026-10-07:** 2,296 usable Tenrai records were written from the top 100 pages; 204 were rejected by validation. The latest Supabase state verified 2,296 source rows.
-- **First puzzle approved and scheduled:** Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) is approved for `2026-10-08`; the schedule was verified in Supabase. The other imported rows remain pending review.
-- The configured Supabase project has the catalog/RLS and Tenrai import migrations applied, with FMA scheduled for 2026-10-08. The new daily-random/eligibility migration is not yet applied; it is required before new dates can be assigned automatically.
-- Game API/UI still defaults to the fictional sample puzzle. Supabase mode is opt-in. After the new migration is applied, first requests will persist one playable approved anime per UTC date; the existing FMA schedule will be preserved.
+- **First puzzle approved and scheduled:** Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) is scheduled for `2026-10-08` UTC. The daily-random migration automatically approved only existing Tenrai rows that pass the playable-data and rating rules; the remaining rows are not eligible unless they later meet those rules.
+- The configured Supabase project has the catalog/RLS, Tenrai import, and daily-random/eligibility migrations applied (owner-confirmed); FMA is scheduled for 2026-10-08 UTC.
+- Vercel Production is configured for Supabase mode and has a successful production deployment. The public API returned a database puzzle for UTC 2026-10-07, repeatedly returned the same ID, omitted answer/clues, and a wrong guess revealed only one clue.
+- The daily assignment uses UTC dates. At UTC+3, the scheduled 2026-10-08 FMA puzzle begins at 03:00 local time. At 00:55 local, production was still serving UTC 2026-10-07; recheck after the date boundary.
+- PR #6 is merged; its Next.js production redeployment has the neutral “Daily anime puzzle” footer instead of the stale sample label.
 - No TMDB, Google Books, or other provider adapter is implemented. Add one only when that vertical is in scope, using its own mapping and terms review.
 
 ## Immediate next steps
 
-1. Review and merge the follow-up that adds persistent daily random assignment and automatic eligibility for playable Tenrai records.
-2. Apply `supabase/migrations/20261007000100_enable_daily_random_anime.sql` to the configured Supabase project.
-3. Verify the migration promotes only playable Tenrai records and preserves the scheduled 2026-10-08 FMA puzzle.
-4. Set and verify the Vercel production environment before enabling `GAME_DATA_SOURCE=supabase`; verify answer/clue privacy and daily stability.
-5. Consider additional providers one at a time after each source's terms and attribution are reviewed; none is implemented yet.
+See [`docs/next-steps.md`](./docs/next-steps.md) for the prioritized post-launch plan and a concise copyable handoff.
 
 ## Token-economy handoff for a new chat
 
-Current handoff: PR #3 is merged. A separate feature adds daily assignment and automatic Tenrai eligibility; it still needs review/merge and its SQL migration applied. Supabase has 2,296 Tenrai rows and FMA is scheduled for 2026-10-08. Sample mode remains the default; additional sources are not integrated.
-
-The original handoff below is retained as historical context and is outdated:
-
-> ClueVerse's latest `main` includes merged PR #2's paper-and-ink UI redesign. PR #3 (opt-in, read-only Supabase puzzle serving) remains open with merge conflicts. The project owner reports the catalog/RLS and Tenrai RPC migrations applied and MyAnimeList terms reviewed for the intended use. Tenrai is selected; the Jikan public API is no longer used. On 2026-10-07 the owner approved the first batch (24 usable records; one rejected) and Fullmetal Alchemist: Brotherhood (MAL ID 5114) was approved and scheduled for 2026-10-08. The other imported records remain pending review. Next resolve PR #3 and verify scheduled puzzle serving/privacy before enabling Supabase mode. Gameplay still uses the fictional sample by default. See `milestones.md` and `docs/data-pipeline.md`; keep `.env.local` secret and untracked.
+Current handoff: PRs #3, #5, and #6 are merged. The daily-random migration is owner-confirmed applied; Vercel Production is running Supabase mode. The Oct 7 UTC puzzle is serving; verify the scheduled FMA puzzle after 03:00 UTC+3 on Oct 8. Only Tenrai is integrated; see [`docs/next-steps.md`](./docs/next-steps.md) for prioritized follow-ups.
 
 ## Workflow / token-cost habits
 
