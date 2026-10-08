@@ -15,6 +15,6 @@ A visitor can open the daily puzzle, read its opening synopsis, submit an anime 
 
 ## Data and scope
 
-The current mechanics prototype uses one original, fictional sample puzzle held server-side. It is not a production anime catalog. Do not publish external-provider descriptions, images, or other content until applicable terms and attribution are reviewed. User progress is in client memory only and can reset on refresh. A separate Supabase catalog schema and Jikan import preparation exist, but the game is not connected to the catalog yet.
+The current mechanics prototype uses one original, fictional sample puzzle held server-side. It is not a production anime catalog. Imported Tenrai metadata remains pending review until curated and approved; images are not imported. User progress is in client memory only and can reset on refresh. A separate Supabase catalog schema and Tenrai importer exist, but the game is not connected to the catalog yet.
 
 Out of scope for the first playable slice: accounts, durable attempts, leaderboards, automatic ingestion schedules, media images, analytics, and additional game modes. Catalog schema and a manual, dry-run-first importer are tracked separately in [the data pipeline guide](../data-pipeline.md).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapJikanAnime, parseImportPages } from "./jikan";
+import { mapTenraiAnime, parseImportPages } from "./tenrai";
 
 const sampleAnime = {
   mal_id: 123,
@@ -17,9 +17,9 @@ const sampleAnime = {
   studios: [{ name: "Example Studio" }],
 };
 
-describe("mapJikanAnime", () => {
+describe("mapTenraiAnime", () => {
   it("maps provider data and retains provenance and aliases", () => {
-    expect(mapJikanAnime(sampleAnime)).toEqual({
+    expect(mapTenraiAnime(sampleAnime)).toEqual({
       provider_id: "123",
       title: "A Sample Story",
       original_title: "サンプルストーリー",
@@ -32,19 +32,19 @@ describe("mapJikanAnime", () => {
       genres: ["Adventure", "Mystery"],
       studios: ["Example Studio"],
       source_url: "https://myanimelist.net/anime/123",
-      attribution_text: expect.stringContaining("require review before publication"),
+      attribution_text: expect.stringContaining("Tenrai API v1"),
     });
   });
 
   it("rejects missing ids, titles, synopses, and low-information synopses", () => {
-    expect(mapJikanAnime({ ...sampleAnime, mal_id: 0 })).toBeNull();
-    expect(mapJikanAnime({ ...sampleAnime, title: "", title_english: null })).toBeNull();
-    expect(mapJikanAnime({ ...sampleAnime, synopsis: "Too short." })).toBeNull();
-    expect(mapJikanAnime({ ...sampleAnime, synopsis: null })).toBeNull();
+    expect(mapTenraiAnime({ ...sampleAnime, mal_id: 0 })).toBeNull();
+    expect(mapTenraiAnime({ ...sampleAnime, title: "", title_english: null })).toBeNull();
+    expect(mapTenraiAnime({ ...sampleAnime, synopsis: "Too short." })).toBeNull();
+    expect(mapTenraiAnime({ ...sampleAnime, synopsis: null })).toBeNull();
   });
 
   it("does not trust invalid optional values", () => {
-    const mapped = mapJikanAnime({
+    const mapped = mapTenraiAnime({
       ...sampleAnime,
       year: "not a year",
       episodes: -1,
