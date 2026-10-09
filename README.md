@@ -36,7 +36,7 @@ The catalog schema is media-type aware but intentionally conservative. Common fi
 
 ## Data and licensing
 
-Anime is the first catalog. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner reports reviewing MyAnimeList's terms for the intended use. The Tenrai importer automatically approves records only when they have a sufficiently long synopsis, at least four playable clue attributes, and are not explicitly rated Rx/Hentai. Other provider integrations are not implemented and will require their own terms, attribution, and eligibility review. Images are not imported.
+Anime is the first catalog. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner reports reviewing MyAnimeList's terms for the intended use. The Tenrai importer automatically approves records only when they have a sufficiently long synopsis, at least four playable clue attributes, and are not explicitly rated Rx/Hentai. A bounded TMDB movie importer is also available, but TMDB attribution and retention/removal requirements must be implemented before its data is displayed publicly. Google Books remains field-scoped research; follow each provider's current terms and eligibility rules. Images are not imported.
 
 The game defaults to one original fictional sample puzzle. Merged PR #3 adds opt-in Supabase runtime serving. A follow-up migration enables stable random daily assignment from approved, playable anime and promotes eligible Tenrai records without per-title approvals. The previous top-100-page import added 2,296 usable records; only records meeting the playability rules can be selected. Imports still require an explicit `--apply`; source ingestion is not scheduled automatically. See [the data-pipeline guide](./docs/data-pipeline.md) for setup and provider-specific policy.
 
@@ -59,6 +59,8 @@ npm run lint
 npm run build
 npm run import:tenrai                 # one-page dry run; does not write to Supabase
 npm run import:tenrai -- --apply      # explicit write; requires separate approval
+npm run import:tmdb                   # one-page dry run; requires TMDB_API_KEY
+npm run import:tmdb -- --pages=2 --apply # explicit write after migration and review
 ```
 
 ## Spec-driven workflow
@@ -76,4 +78,4 @@ See [the daily puzzle specification](./docs/specs/daily-anime-puzzle.md) and [pr
 
 ## Current state
 
-The responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. PR #3 is merged and Supabase serving remains opt-in; sample mode is still the default. The original 2,296-record Tenrai catalog has one manually scheduled puzzle on October 8, 2026. The new daily-assignment migration must be applied before subsequent dates are randomly assigned. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).
+The responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. PR #3 is merged and Supabase serving remains opt-in; sample mode is still the default. The original 2,296-record Tenrai catalog has one manually scheduled puzzle on October 8, 2026. A bounded TMDB movie importer is available; no live API preview or TMDB import has been run. TMDB attribution and retention/removal handling are required before public display. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).

@@ -1,6 +1,6 @@
 # ClueVerse progress and handoff
 
-Last updated: 2026-10-07 22:53 +03:00
+Last updated: 2026-10-09
 
 ## Product aim
 
@@ -8,7 +8,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 ## Current repository state
 
-- PR #3 has merged to `main` (merge commit `d69ff17`); the daily-random/automatic-Tenrai-eligibility follow-up is being developed separately.
+- PR #3 has merged to `main` (merge commit `d69ff17`), as has persisted daily assignment and automatic Tenrai eligibility. Supabase mode remains opt-in; confirm the daily-assignment migration is applied before relying on it.
 - The first feature PR, #1, was merged into `main` on 2026-10-05. Its CI passed and Vercel reported a successful preview deployment.
 - UI/UX PR #2 was merged into `main` on 2026-10-05. The paper-and-ink redesign, responsive layout, accessibility affordances, and loading/retry states are now part of the default branch.
 - Merged commits:
@@ -28,24 +28,23 @@ Build a polished daily media mystery game: players identify a title from a synop
 - The project owner confirmed the intended Supabase project migration and RLS state on 2026-10-05. The schema, Tenrai importer, and opt-in runtime reader are in `main`; the new daily-assignment migration is being developed separately.
 - The catalog schema includes typed common media fields (including `synopsis`), source provenance/snapshots, aliases, genres/studios, review status, and scheduled daily puzzles. Only approved records can be scheduled/published.
 - The Tenrai importer supports paged fetching, validation, source IDs/attribution metadata, retry/backoff, a five-record dry-run preview, and idempotent batched upserts. It defaults to a one-page no-write dry run; writing requires explicit `--apply`.
-- The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai as the only implemented provider. Other providers still need separate terms, attribution, adapters, and eligibility rules.
+- The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai for anime. A bounded TMDB movie importer and service-role RPC migration are implemented; the project owner reports applying the TMDB migration to the intended Supabase project. No TMDB API key is configured locally, so no live preview or TMDB write has occurred. TMDB attribution and retention/removal safeguards remain necessary before public display.
 - **Initial import completed 2026-10-07:** 2,296 usable Tenrai records were written from the top 100 pages; 204 were rejected by validation. The latest Supabase state verified 2,296 source rows.
 - **First puzzle approved and scheduled:** Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) is approved for `2026-10-08`; the schedule was verified in Supabase. The other imported rows remain pending review.
-- The configured Supabase project has the catalog/RLS and Tenrai import migrations applied, with FMA scheduled for 2026-10-08. The new daily-random/eligibility migration is not yet applied; it is required before new dates can be assigned automatically.
-- Game API/UI still defaults to the fictional sample puzzle. Supabase mode is opt-in. After the new migration is applied, first requests will persist one playable approved anime per UTC date; the existing FMA schedule will be preserved.
-- No TMDB, Google Books, or other provider adapter is implemented. Add one only when that vertical is in scope, using its own mapping and terms review.
+- The configured Supabase project has the catalog/RLS and Tenrai import migrations applied, with FMA scheduled for 2026-10-08. The daily-random/eligibility migration is in `main`; its application state is not confirmed here.
+- Game API/UI still defaults to the fictional sample puzzle. Supabase mode is opt-in. Once the daily-random migration is applied, first requests persist one playable approved anime per UTC date; the existing FMA schedule is preserved.
+- Google Books remains field-scoped research; Wikidata is secondary manga metadata research, and AniList is excluded from persistent ingestion under its current terms.
 
 ## Immediate next steps
 
-1. Review and merge the follow-up that adds persistent daily random assignment and automatic eligibility for playable Tenrai records.
-2. Apply `supabase/migrations/20261007000100_enable_daily_random_anime.sql` to the configured Supabase project.
-3. Verify the migration promotes only playable Tenrai records and preserves the scheduled 2026-10-08 FMA puzzle.
-4. Set and verify the Vercel production environment before enabling `GAME_DATA_SOURCE=supabase`; verify answer/clue privacy and daily stability.
-5. Consider additional providers one at a time after each source's terms and attribution are reviewed; none is implemented yet.
+1. Configure `TMDB_API_KEY` in `.env.local` and review `npm run import:tmdb` dry-run output; do not run `--apply` without explicit batch approval.
+2. Implement TMDB attribution UI and cache/removal purge handling before displaying TMDB-backed content publicly.
+3. Confirm the daily-random Tenrai eligibility migration is applied and verify end-to-end puzzle serving/privacy before enabling Supabase mode in production.
+4. Continue Google Books field-permission and Wikidata manga-classification work; do not persist AniList catalog data.
 
 ## Token-economy handoff for a new chat
 
-Current handoff: PR #3 is merged. A separate feature adds daily assignment and automatic Tenrai eligibility; it still needs review/merge and its SQL migration applied. Supabase has 2,296 Tenrai rows and FMA is scheduled for 2026-10-08. Sample mode remains the default; additional sources are not integrated.
+Current handoff: PR #3 and the daily-assignment feature are merged. The project owner reports applying the TMDB movie importer migration; no TMDB live preview or write has been performed because the API key is absent locally. Add it to `.env.local`, review a dry run, and retain explicit approval before any import. TMDB attribution and retention/removal handling are required before public display. Supabase has 2,296 Tenrai rows and FMA is scheduled for 2026-10-08; sample mode remains the default.
 
 The original handoff below is retained as historical context and is outdated:
 

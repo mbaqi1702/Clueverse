@@ -2,7 +2,7 @@
 
 ## Decision
 
-External providers are ingestion sources, not dependencies in the player request path. The first adapter imports paged Tenrai `/v1/top/anime` responses into Supabase. In Supabase mode, the app persists one random assignment per UTC date from approved, playable anime; it must not call Tenrai while a player loads or guesses.
+External providers are ingestion sources, not dependencies in the player request path. The Tenrai adapter imports paged `/v1/top/anime` responses, and the TMDB adapter imports bounded movie pages into Supabase. In Supabase mode, the app persists one random assignment per UTC date from eligible anime; it must not call providers while a player loads or guesses.
 
 Tenrai is a third-party API providing MyAnimeList-sourced metadata and is described by its maintainers as a Jikan v4 successor ([Tenrai project](https://github.com/Kareadita/tenrai.net), [Tenrai API](https://tenrai.org)). The project owner reports reviewing MyAnimeList's terms for the intended use. Tenrai records are automatically approved only when the synopsis is at least 80 characters, the record has at least four clue categories from genre, year, format, episode count, studio, and content rating, and the rating is not marked Rx/Hentai. Incomplete or explicitly adult-rated records remain out of daily selection. This is a data-quality/content-rating gate, not a human content-suitability review. Each record retains provider ID, MyAnimeList source URL, Tenrai attribution, retrieval time, and mapped snapshot. No images are imported.
 
@@ -22,6 +22,12 @@ Row-level security is enabled with no browser-facing policies. Only a server/ope
 3. Run a small dry run first: `npm run import:tenrai`. It fetches one page, validates rows, reports counts, prints up to five usable mapped records for review, and makes no database writes.
 4. After reviewing the preview, get explicit human approval before persisting a batch with `npm run import:tenrai -- --pages=4 --apply` (up to 100 pages / 2,500 source entries in this importer). If an approved batch stops partway through, resume with `--start-page=<next-page> --pages=<remaining-pages> --apply`; completed pages are not repeated. The initial approved top-100-page import completed with 2,296 usable records.
 5. The importer automatically approves technically playable Tenrai rows; no title-by-title approval or manual daily scheduling is needed. Inspect `pending_review` rows and rejected records to monitor missing data, content suitability, title leakage, attribution, and source changes. Importing remains an explicit operator action with `--apply`; it is not a scheduled background sync.
+
+### Import a TMDB movie batch
+
+The TMDB importer requires `TMDB_API_KEY` in `.env.local` and defaults to a one-page, no-write preview: `npm run import:tmdb`. It requests movie genre names and top-rated movie pages, filters adult records and overviews shorter than 80 characters, and imports no images. Requests are capped at 10 pages per invocation. Review the preview before any write; after applying `supabase/migrations/20261009000100_add_tmdb_movie_import.sql`, an explicitly approved small batch can be written with `npm run import:tmdb -- --pages=2 --apply`. Use `--start-page=<page>` to resume a bounded range.
+
+TMDB records are staged as `pending_review`; reimports update canonical fields only while a record remains pending review and refresh source provenance for approved records without overwriting their canonical content. The migration exposes its batch RPC to `service_role` only. The project owner reports that this migration has been applied to the intended Supabase project. Before displaying TMDB data publicly, implement the required TMDB logo and notice, cache limit, and content purge process for termination/removal. Commercial use is governed by a separate written agreement.
 
 ### Inspect eligibility and daily assignments
 
@@ -49,7 +55,7 @@ Imports are idempotent by `(provider, provider_id)`; Tenrai is recorded as the p
 
 ### Additional providers
 
-No TMDB, Google Books, or other provider adapter is currently implemented. Add sources one at a time after reviewing that provider's current reuse terms, attribution requirements, rate limits, and any credential needs. Each adapter must map into the canonical tables and have focused validation/tests. The automatic Tenrai eligibility policy does not grant approval to another provider; each source needs its own explicit eligibility decision. Flag possible cross-provider matches for review instead of fuzzy-merging different editions or adaptations.
+Google Books is a field-scoped candidate; Wikidata is a secondary manga metadata candidate, while AniList is excluded from persistent ingestion under its current terms. See [the source evaluation](./source-evaluation.md). Add further sources one at a time after reviewing current reuse terms, attribution requirements, rate limits, and credential needs. Each adapter must map into the canonical tables and have focused validation/tests. The automatic Tenrai eligibility policy does not grant approval to another provider; each source needs its own eligibility decision. Flag possible cross-provider matches for review instead of fuzzy-merging different editions or adaptations.
 
 ## Serving and cache behavior
 

@@ -6,8 +6,9 @@ This roadmap makes database readiness and additional content sources explicit, s
 
 - **UI foundation — complete:** PR #2 is merged. The daily puzzle has a responsive paper-and-ink design, accessible structure, and loading/retry states.
 - **Catalog foundation — 2,296 Tenrai records imported:** The top 100 pages produced 2,296 usable records and 204 mapper rejections. Fullmetal Alchemist: Brotherhood is manually scheduled for 2026-10-08. The new daily-random migration will automatically approve only playable Tenrai records; incomplete and explicitly Rx/Hentai-rated records remain out of daily selection.
-- **Database-backed gameplay — merged; random assignment in progress:** PR #3 is merged. Supabase mode remains opt-in, and sample mode remains the default. A follow-up change adds persisted random daily assignment; applying its migration and enabling production mode remain separate deployment steps.
-- **External source — selected; initial import complete:** Tenrai is the only implemented provider. The project owner reports reviewing MyAnimeList terms for the intended use. Other sources (including TMDB and Google Books) are candidates only and require their own terms, attribution, adapter, and eligibility review.
+- **Database-backed gameplay — merged:** PR #3 and persisted daily assignment are merged. Supabase mode remains opt-in; confirm the daily-assignment migration is applied before relying on random assignment.
+- **External sources — assessment and first movie adapter complete:** Tenrai is the anime provider. The bounded TMDB movie importer and service-role RPC are implemented; the project owner reports applying its migration to the intended Supabase project. No live TMDB preview or write has occurred because no API key is configured locally. TMDB attribution and retention/removal handling remain prerequisites for public display. Google Books is field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent ingestion. See [the source evaluation](./docs/source-evaluation.md).
+- **Gameplay UI follow-ups — planned:** Reduce the brown-on-black contrast, remove the “Written with Malrewrite” credit, and implement the accepted anime title suggestions and skip behavior.
 
 ## Milestone 1 — Merge safe database-backed puzzle serving
 
@@ -68,9 +69,9 @@ Acceptance criteria:
 
 ## Milestone 5 — Add additional media sources one at a time
 
-**Status: Planned; only Tenrai is currently implemented**
+**Status: TMDB movie ingestion implemented; public display safeguards and other sources remain**
 
-Choose the next vertical based on player interest and source permissions. Potential providers include TMDB for movies/TV, Google Books for books, and a separately reviewed source for manga. These are candidates only; each requires its own current terms, attribution, credentials, and data-use review.
+TMDB movies are the first additional source; the bounded importer and service-role RPC are implemented. Google Books remains field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent catalog ingestion under its current terms. See [the source evaluation](./docs/source-evaluation.md).
 
 Acceptance criteria for each new source:
 
@@ -80,6 +81,7 @@ Acceptance criteria for each new source:
 - Duplicate/cross-provider matches are reviewed explicitly rather than automatically merged.
 - Import, mapping, validation, attribution, and failure behavior have focused tests.
 - Define eligibility independently for each provider; the player request path never calls the provider directly.
+- Before public TMDB display, provide the required logo/notice and implement cache and removal/purge obligations.
 
 Do not build multiple adapters in advance or ingest images until image rights and storage/attribution requirements are settled.
 
