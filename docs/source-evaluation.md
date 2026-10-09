@@ -4,9 +4,13 @@ Last screened: 2026-10-09. The project owner has authorized proceeding with the 
 
 ## Recommendation
 
-Recommended implementation order:
+## Current status
 
-- **TMDB — first adapter candidate for movies/TV.** The project owner has authorized proceeding. TMDB's API terms require attribution with its logo and a prominent notice, cap caching at six months, and require content to be purged when access ends. A separate written agreement governs commercial use. Start with one vertical (movies), preserve source IDs/provenance, avoid images, and keep the provider out of player requests.
+The bounded TMDB movie importer and service-role-only database RPC are implemented. The project owner reports applying the TMDB migration to the intended Supabase project. A live API dry run and any TMDB data import remain pending because `TMDB_API_KEY` is not configured locally. Do not run an import write without reviewing a dry-run preview and receiving separate explicit batch approval. Required TMDB attribution and retention/removal handling must be in place before public display.
+
+## Recommendations and constraints
+
+- **TMDB — movie adapter implemented; TV remains future scope.** The project owner has authorized proceeding. TMDB's API terms require attribution with its logo and a prominent notice, cap caching at six months, and require content to be purged when access ends. A separate written agreement governs commercial use. The implemented importer preserves source IDs/provenance, avoids images, and keeps the provider out of player requests. Finish local dry-run validation and public-display safeguards before expanding use.
 - **Google Books — candidate for books, field-scoped.** The project owner has authorized proceeding. Google API terms restrict permanent copies of returned content unless the content owner permits it and constrain caching to the cache header. Implement only fields covered by the granted rights and terms; do not ingest descriptions or covers by default.
 - **Wikidata — metadata candidate for manga, not a standalone clue source.** Wikidata structured data is CC0; attribution is encouraged. A refined but still narrow sample found useful titles and creators, but publication dates, genres, and aliases were sparse. Use it as structured metadata enrichment after further mapping and quality checks; plan for independently written or separately cleared clues.
 - **AniList — do not use as an ingestion source.** Its API terms prohibit hoarding, mass collection, and using the API as a backup or data store. It is therefore incompatible with the persistent catalog design, regardless of its extensive anime/manga coverage. The published rate-limit page currently notes a temporary 30-requests-per-minute degraded limit (normally 90), which is another reason not to depend on it operationally.
@@ -29,14 +33,14 @@ Some remaining results are manga volumes or short works, so the selection still 
 
 | Candidate | Proposed vertical | Useful potential | Main constraints and risks | Current disposition |
 | --- | --- | --- | --- | --- |
-| TMDB | Movies first, then TV | Provider IDs, titles, metadata, broad screen-media coverage | Attribution/logo/notice required; cache limit and termination purge obligations; commercial use requires written agreement; no SLA | Start with the movie adapter; honor the owner-authorized access scope and implement attribution/retention requirements |
+| TMDB | Movies first, then TV | Provider IDs, titles, metadata, broad screen-media coverage | Attribution/logo/notice required; cache limit and termination purge obligations; commercial use requires written agreement; no SLA | Movie importer implemented; migration applied per owner report; live dry run pending; complete attribution/retention requirements before public display |
 | Google Books API | Books | Searchable volume IDs, titles, authors, publishers, dates, categories, and links | API terms constrain persistent copying and caching; third-party content rights vary by field/record | Proceed only with fields allowed by the owner's grant and current terms; omit descriptions/covers by default |
 | Wikidata | Manga works and creators | CC0 structured facts and external identifiers; titles and some creators available | Small alphabetic sample had sparse dates/genres/aliases, incomplete record classification, and little clue-quality description text | Continue bounded mapping/quality work as metadata enrichment; create clue text independently |
 | AniList API | Anime and manga | Large purpose-built catalog with extensive fields | Terms expressly prohibit hoarding, mass collection, and data-storage/backup use; current temporary rate limit is reduced | Exclude from persistent catalog ingestion |
 
 ## Next bounded work
 
-1. Run the TMDB dry run after `TMDB_API_KEY` is configured; review mapped fields and rejection counts before any `--apply`. The adapter is implemented with bounded requests, provenance, no image import, and pending-review writes. Add TMDB's required logo/notice and cache/purge handling before public use.
+1. Configure `TMDB_API_KEY` locally and run the no-write TMDB dry run; review mapped fields and rejection counts before any `--apply`. The migration is reported as applied, and the adapter uses bounded requests, provenance, no image import, and pending-review writes. Add TMDB's required logo/notice and cache/purge handling before public use.
 2. Refine the Wikidata selector to distinguish manga works/series from volumes and one-shots; continue treating the source as secondary metadata. Do not assume descriptions are puzzle clues.
 3. Implement Google Books only for fields covered by the owner's permission; default to identifiers and minimal bibliographic metadata, and do not persist descriptions/covers unless expressly allowed.
 4. Before any provider database write or public display, document permitted fields and uses, required attribution, retention/refresh rules, credentials, limits, and owner authorization. Keep all provider APIs out of the player request path.
