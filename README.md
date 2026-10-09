@@ -17,7 +17,7 @@ The product should feel like a polished, welcoming consumer game while remaining
 
 - Expand from anime into movies and TV, then books, manga, and other media.
 - Add player accounts, streaks, personal history, social sharing, and optional global/friends leaderboards.
-- Grow the catalog through source-specific importers, validation, human review, attribution, and scheduled refreshes.
+- Grow the catalog through source-specific importers, validation, eligibility rules, attribution, and controlled refreshes.
 - Use analytics and performance measurements to guide product and scaling decisions—not to add services preemptively.
 - Continue improving the visual design and usability through preview deployments, real-device checks, accessibility reviews, and player feedback.
 
@@ -28,7 +28,7 @@ The product should feel like a polished, welcoming consumer game while remaining
 - **Database:** Supabase Postgres for the normalized media catalog, provenance, approved daily puzzle schedule, and later player data.
 - **Hosting:** Vercel, with preview deployments for pull requests and production deployments from the protected default branch.
 - **CI:** GitHub Actions runs tests, lint, and build on pushes to `main` and pull requests.
-- **Data flow:** provider APIs/datasets → paged ingestion → normalization and validation → review queue in Supabase → human-approved puzzle schedule → ClueVerse game API → web UI.
+- **Data flow:** provider APIs/datasets → paged ingestion → normalization and validation → source-specific eligibility → persisted daily puzzle assignment → ClueVerse game API → web UI.
 
 The player request path must use our database, not depend on live provider APIs. Daily puzzle selection is stable for its date. Cache only public, answer-free responses; never cache a response containing the answer or unrevealed clues. Start without Redis or a separate worker service and add infrastructure only when measurements justify it.
 
@@ -36,9 +36,9 @@ The catalog schema is media-type aware but intentionally conservative. Common fi
 
 ## Data and licensing
 
-Anime is the first catalog. A Tenrai importer and Supabase schema are prepared. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner has reviewed MyAnimeList's terms for the intended use. Imported records remain pending review until individually curated and approved. Images are not imported.
+Anime is the first catalog. Tenrai is a third-party API serving MyAnimeList-sourced metadata; the project owner reports reviewing MyAnimeList's terms for the intended use. The Tenrai importer automatically approves records only when they have a sufficiently long synopsis, at least four playable clue attributes, and are not explicitly rated Rx/Hentai. A bounded TMDB movie importer is also available, but TMDB attribution and retention/removal requirements must be implemented before its data is displayed publicly. Google Books remains field-scoped research; follow each provider's current terms and eligibility rules. Images are not imported.
 
-The current gameplay prototype still uses one original fictional sample puzzle. The Supabase catalog schema and Tenrai importer are available; runtime database serving is being added separately in PR #3. The approved top-100-page import added 2,296 usable records to Supabase; records remain pending review until individually approved. The importer defaults to a no-write dry run; a real import requires an explicit `--apply` flag and separate human approval. See [the data-pipeline guide](./docs/data-pipeline.md) for the schema, import, review, refresh, and caching plan.
+The game defaults to one original fictional sample puzzle. Merged PR #3 adds opt-in Supabase runtime serving. A follow-up migration enables stable random daily assignment from approved, playable anime and promotes eligible Tenrai records without per-title approvals. The previous top-100-page import added 2,296 usable records; only records meeting the playability rules can be selected. Imports still require an explicit `--apply`; source ingestion is not scheduled automatically. See [the data-pipeline guide](./docs/data-pipeline.md) for setup and provider-specific policy.
 
 ## Local development
 
@@ -59,6 +59,8 @@ npm run lint
 npm run build
 npm run import:tenrai                 # one-page dry run; does not write to Supabase
 npm run import:tenrai -- --apply      # explicit write; requires separate approval
+npm run import:tmdb                   # one-page dry run; requires TMDB_API_KEY
+npm run import:tmdb -- --pages=2 --apply # explicit write after migration and review
 ```
 
 ## Spec-driven workflow
@@ -76,4 +78,4 @@ See [the daily puzzle specification](./docs/specs/daily-anime-puzzle.md) and [pr
 
 ## Current state
 
-The first responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. The Supabase catalog contains 2,296 usable Tenrai records; one is approved and scheduled, while the rest await review. PR #3 adds the opt-in read-only runtime path and currently has merge conflicts. The game still defaults to its fictional sample puzzle. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).
+The responsive puzzle slice, server-validated guessing flow, and editorial UI redesign are implemented. PR #3 is merged and Supabase serving remains opt-in; sample mode is still the default. The original 2,296-record Tenrai catalog has one manually scheduled puzzle on October 8, 2026. A bounded TMDB movie importer is available; no live API preview or TMDB import has been run. TMDB attribution and retention/removal handling are required before public display. Current status is in [`progress.md`](./progress.md); staged database and source goals are in [`milestones.md`](./milestones.md).

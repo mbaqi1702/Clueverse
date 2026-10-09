@@ -2,50 +2,36 @@
 
 ## Decision
 
-External providers are ingestion sources, not dependencies in the player request path. The Tenrai adapter imports paged anime records and the TMDB adapter imports bounded movie pages into Supabase. The app serves a deliberately curated, reviewed daily puzzle from the database after the catalog is populated; it must not call a provider while a player loads or guesses.
+External providers are ingestion sources, not dependencies in the player request path. The Tenrai adapter imports paged `/v1/top/anime` responses, and the TMDB adapter imports bounded movie pages into Supabase. In Supabase mode, the app persists one random assignment per UTC date from eligible anime; it must not call providers while a player loads or guesses.
 
-Tenrai is a third-party API providing MyAnimeList-sourced metadata and is described by its maintainers as a Jikan v4 successor ([Tenrai project](https://github.com/Kareadita/tenrai.net), [Tenrai API](https://tenrai.org)). The project owner reports reviewing MyAnimeList's terms for the intended use. Records are still marked `pending_review` and require individual curation before approval or publication. The importer stores the provider ID, MyAnimeList source URL, Tenrai attribution, retrieval time, and mapped source snapshot for traceability. No images are imported.
-
-## Additional source discovery
-
-Initial screening recommends TMDB movies as the first new adapter, Google Books as a field-scoped books candidate, and Wikidata as a secondary manga metadata source. AniList is excluded from persistent catalog ingestion under its current terms. The project owner authorized proceeding with the accepted candidates. See [the source evaluation](./source-evaluation.md) for screening results, constraints, and official references.
-
-For each candidate, record:
-
-- Coverage and fit for the proposed first media type.
-- Current terms and permitted uses for each field, including display, retention, and redistribution; record unresolved licensing questions rather than assuming API access grants reuse rights.
-- Required attribution, credentials, access approval, rate limits, availability, and operational cost.
-- Useful canonical fields, mapping gaps, and any provider-specific data needed for clues.
-- Known content-quality, duplicate, and update risks.
-
-Proceed one source at a time, starting with TMDB movies. Use only the owner-authorized access and fields; preserve required attribution and retention/removal behavior. For all importers, keep dry-run as the default, require explicit `--apply` for database writes, and leave records pending human review. If permission for a field is unclear, exclude it or use original or independently licensed content.
+Tenrai is a third-party API providing MyAnimeList-sourced metadata and is described by its maintainers as a Jikan v4 successor ([Tenrai project](https://github.com/Kareadita/tenrai.net), [Tenrai API](https://tenrai.org)). The project owner reports reviewing MyAnimeList's terms for the intended use. Tenrai records are automatically approved only when the synopsis is at least 80 characters, the record has at least four clue categories from genre, year, format, episode count, studio, and content rating, and the rating is not marked Rx/Hentai. Incomplete or explicitly adult-rated records remain out of daily selection. This is a data-quality/content-rating gate, not a human content-suitability review. Each record retains provider ID, MyAnimeList source URL, Tenrai attribution, retrieval time, and mapped snapshot. No images are imported.
 
 ## Storage model
 
 - `media`: canonical, typed fields used by the game (title, synopsis, year, episode count, format, and content rating). Media types leave room for later verticals.
 - `media_sources`: provider IDs and provenance; its JSON snapshot retains the latest mapped provider record for review, not as the query model.
 - `media_aliases`, `genres`, `media_genres`, `studios`, `media_studios`: queryable title aliases and clue attributes.
-- `daily_puzzles`: a human-curated date-to-media schedule. Only approved media can be scheduled or published.
+- `daily_puzzles`: a stable date-to-media schedule. A database function preserves an existing valid scheduled puzzle or atomically assigns one eligible title for an unassigned UTC date, preferring titles not previously used.
 
-Row-level security is enabled with no browser-facing policies. Only a server/operator using the Supabase secret key can import, curate, schedule, or read protected catalog rows. Never put that key in `NEXT_PUBLIC_*`.
+Row-level security is enabled with no browser-facing policies. Only a server/operator using the Supabase secret key can import or read protected catalog rows. Never put that key in `NEXT_PUBLIC_*`.
 
 ## Import lifecycle
 
-1. Apply the catalog migration and provider migrations, `supabase/migrations/20261004000100_create_media_catalog.sql`, `supabase/migrations/20261006000100_add_tenrai_anime_import.sql`, and `supabase/migrations/20261009000100_add_tmdb_movie_import.sql`, to the Supabase project in filename order (paste each into the project's Supabase SQL Editor in filename order if migrations are applied manually).
+1. Apply migrations in filename order: `supabase/migrations/20261004000100_create_media_catalog.sql`, `supabase/migrations/20261006000100_add_tenrai_anime_import.sql`, and `supabase/migrations/20261007000100_enable_daily_random_anime.sql` (paste each into the project's Supabase SQL Editor in filename order if migrations are applied manually).
 2. The project owner has reviewed MyAnimeList's terms for the intended use. Recheck the current Tenrai service limits and availability before large imports; the public API is an external dependency.
 3. Run a small dry run first: `npm run import:tenrai`. It fetches one page, validates rows, reports counts, prints up to five usable mapped records for review, and makes no database writes.
 4. After reviewing the preview, get explicit human approval before persisting a batch with `npm run import:tenrai -- --pages=4 --apply` (up to 100 pages / 2,500 source entries in this importer). If an approved batch stops partway through, resume with `--start-page=<next-page> --pages=<remaining-pages> --apply`; completed pages are not repeated. The initial approved top-100-page import completed with 2,296 usable records.
-5. Inspect `pending_review` rows for synopsis quality, unsuitable/adult content, duplicate records, title leakage, attribution, and clue quality. Approve only records cleared for use, then add selected media to `daily_puzzles` with a scheduled date. The database rejects scheduling or publishing unapproved media.
+5. The importer automatically approves technically playable Tenrai rows; no title-by-title approval or manual daily scheduling is needed. Inspect `pending_review` rows and rejected records to monitor missing data, content suitability, title leakage, attribution, and source changes. Importing remains an explicit operator action with `--apply`; it is not a scheduled background sync.
 
 ### Import a TMDB movie batch
 
-Set `TMDB_API_KEY` in `.env.local`; keep it server-side and never prefix it with `NEXT_PUBLIC_`. Run `npm run import:tmdb` for a one-page dry run. It checks the mapped preview and counts, makes no database writes, and omits adult records, image data, and synopses shorter than 80 characters. Requests are limited to at most 10 pages per invocation. After the TMDB migration is applied and the preview reviewed, a human-approved batch can be written with `npm run import:tmdb -- --pages=2 --apply`; `--start-page=<page>` resumes a bounded range.
+The TMDB importer requires `TMDB_API_KEY` in `.env.local` and defaults to a one-page, no-write preview: `npm run import:tmdb`. It requests movie genre names and top-rated movie pages, filters adult records and overviews shorter than 80 characters, and imports no images. Requests are capped at 10 pages per invocation. Review the preview before any write; after applying `supabase/migrations/20261009000100_add_tmdb_movie_import.sql`, an explicitly approved small batch can be written with `npm run import:tmdb -- --pages=2 --apply`. Use `--start-page=<page>` to resume a bounded range.
 
-The importer stores movie titles, original titles, overviews, release year, genre names, TMDB ID, source URL, and a mapped source snapshot as `pending_review`. The player never calls TMDB. Reimports update canonical fields only while a record is pending review; approved records retain their canonical content while source provenance is refreshed. Before public TMDB content is displayed, add the required logo and notice to the application and implement the provider's cache and termination/purge requirements.
+TMDB records are staged as `pending_review`; reimports update canonical fields only while a record remains pending review and refresh source provenance for approved records without overwriting their canonical content. The migration exposes its batch RPC to `service_role` only. The project owner reports that this migration has been applied to the intended Supabase project. Before displaying TMDB data publicly, implement the required TMDB logo and notice, cache limit, and content purge process for termination/removal. Commercial use is governed by a separate written agreement.
 
-### Curate and schedule a puzzle
+### Inspect eligibility and daily assignments
 
-Use the Supabase Dashboard **SQL Editor** with an authorized project account; do not expose the service key. First inspect imported records and choose a specific record:
+Use the Supabase Dashboard **SQL Editor** with an authorized project account; do not expose the service key. Inspect imported records:
 
 ```sql
 select m.id, m.title, m.release_year, m.content_rating, m.review_status,
@@ -53,41 +39,28 @@ select m.id, m.title, m.release_year, m.content_rating, m.review_status,
 from public.media m
 join public.media_sources ms on ms.media_id = m.id
 where ms.provider = 'tenrai'
-order by m.title;
+order by m.review_status, m.title;
 ```
 
-After reviewing the selected row, replace `<media-id>` with its UUID and `YYYY-MM-DD` with the intended puzzle date, then run:
+The daily assignment RPC runs on the first Supabase-mode request for each UTC date. It preserves an existing valid scheduled or published row; otherwise, it selects an approved playable title, prefers one not previously used, and stores it as `scheduled`. A transaction-level advisory lock prevents concurrent requests from selecting the same unused title. Verify persisted assignments with:
 
 ```sql
-begin;
-
-update public.media
-set review_status = 'approved', updated_at = now()
-where id = '<media-id>'::uuid
-  and media_type = 'anime'
-  and review_status = 'pending_review';
-
-insert into public.daily_puzzles (puzzle_date, media_id, status)
-select date 'YYYY-MM-DD', id, 'scheduled'
-from public.media
-where id = '<media-id>'::uuid
-  and review_status = 'approved';
-
-commit;
+select dp.puzzle_date, dp.status, m.title, m.review_status
+from public.daily_puzzles dp
+join public.media m on m.id = dp.media_id
+order by dp.puzzle_date desc;
 ```
 
-Check the SQL Editor's affected-row counts and verify the scheduled row afterward. The date is unique; an existing date causes the insert to fail rather than silently replace a puzzle. Approve and schedule records individually after review. `scheduled` does not itself enable database mode in the deployed game.
+Imports are idempotent by `(provider, provider_id)`; Tenrai is recorded as the provider while the source URL retains the MyAnimeList record. The importer uses a conservative delay between source pages and retries transient failures. Importing is a manual operation; do not schedule automatic refreshes until source limits and operational needs are understood. Reimports save a new source snapshot and do not overwrite already-approved canonical content.
 
-Imports are idempotent by `(provider, provider_id)`; Tenrai is recorded as the provider while the source URL retains the MyAnimeList record. The importer uses a conservative delay between source pages and retries transient failures. It is a manual operation in V1; do not schedule automatic refreshes until source limits and review workload are understood. Reimports save a new source snapshot. They do not overwrite already-approved canonical content; a human must review and apply changes. This gives us updates without silently changing a puzzle or approved record.
+### Additional providers
 
-After a source and intended use have been approved, add one source-specific adapter that maps permitted provider fields into these typed tables. Keep one `media_sources` record per provider identity. If two providers appear to describe the same title, flag them for an explicit canonical-match decision instead of fuzzy-merging potentially different editions or adaptations.
-
-For anime title suggestions, query only approved, public-safe catalog titles through a bounded server-side prefix search. Keep the result count limited and avoid exposing pending-review records, provider calls, puzzle answers, aliases, or unrevealed clues through the suggestion response.
+Google Books is a field-scoped candidate; Wikidata is a secondary manga metadata candidate, while AniList is excluded from persistent ingestion under its current terms. See [the source evaluation](./source-evaluation.md). Add further sources one at a time after reviewing current reuse terms, attribution requirements, rate limits, and credential needs. Each adapter must map into the canonical tables and have focused validation/tests. The automatic Tenrai eligibility policy does not grant approval to another provider; each source needs its own eligibility decision. Flag possible cross-provider matches for review instead of fuzzy-merging different editions or adaptations.
 
 ## Serving and cache behavior
 
 The player reads only the selected puzzle and the currently unlocked clue from our server/database. Never serialize the answer, aliases, or unrevealed clues in the initial response. Puzzle assignment is stable for a date; provider refreshes do not change an active puzzle.
 
-Once Supabase-backed serving is implemented, the public, answer-free daily puzzle response can use short CDN caching (for example, `s-maxage=300, stale-while-revalidate=3600`). Guess submission and private attempt state stay uncached. Do not cache a response containing the answer or unrevealed clues. We do not need Redis for this scale; measure traffic and cache misses before adding another service.
+The Supabase-backed game route assigns the date once and returns only the public, answer-free puzzle fields. Guess submission and private attempt state stay uncached. Do not cache a response containing the answer or unrevealed clues. We do not need Redis for this scale; measure traffic and cache misses before adding another service.
 
-The current deployed-slice prototype still uses one original sample puzzle in code. The database migration and importer prepare the catalog; switching game reads to Supabase is a follow-up implementation after the schema is applied and some records are reviewed. Fullmetal Alchemist: Brotherhood is approved and scheduled for 2026-10-08 in the configured Supabase catalog; this does not enable database mode in the game.
+The game still defaults to its original sample puzzle. `GAME_DATA_SOURCE=supabase` is opt-in and requires the Supabase migrations and server-only credentials. Fullmetal Alchemist: Brotherhood remains explicitly scheduled for 2026-10-08; later dates are assigned on request after the daily-random migration is applied. Applying migrations and setting the Vercel production environment are separate deployment steps.

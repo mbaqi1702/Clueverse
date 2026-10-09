@@ -141,7 +141,9 @@ async function main() {
       if (!apply && preview.length < 5) preview.push(record);
     }
     if (supabase && records.length > 0) {
-      const { error } = await supabase.rpc("upsert_tenrai_anime_batch", { p_items: records });
+      const { error } = await supabase.rpc("upsert_tenrai_anime_batch_and_approve", {
+        p_items: records,
+      });
       if (error) {
         throw new Error(`Failed to import Tenrai page ${page}: ${error.message}`);
       }
