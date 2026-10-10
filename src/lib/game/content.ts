@@ -41,7 +41,9 @@ export function getPublicPuzzle(
   return {
     id: puzzle.id,
     date,
-    synopsis: puzzle.synopsis,
+    synopsis: puzzle.synopsis
+      .replace(/\s*\[Written by MAL Rewrite\]\s*$/i, "")
+      .trim(),
     maxAttempts: puzzle.maxAttempts,
   };
 }

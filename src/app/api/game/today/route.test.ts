@@ -106,4 +106,17 @@ describe("today's game API", () => {
     expect(data).not.toHaveProperty("acceptedGuesses");
     expect(data).not.toHaveProperty("clues");
   });
+
+  it("omits the MAL Rewrite editorial suffix from the public synopsis", async () => {
+    vi.stubEnv("GAME_DATA_SOURCE", "supabase");
+    supabaseMocks.getPuzzleForDate.mockResolvedValue({
+      ...dailyPuzzle,
+      synopsis: "A puzzle synopsis. [Written by MAL Rewrite]",
+    });
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(data.synopsis).toBe("A puzzle synopsis.");
+  });
 });

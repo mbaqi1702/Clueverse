@@ -2,7 +2,7 @@
 
 :root {
   color-scheme: dark;
-  --paper: #211d19;
+  --paper: #302a24;
   --sheet: #f3eee3;
   --ink: #282620;
   --muted: #676157;
@@ -320,12 +320,12 @@ button:disabled {
 }
 
 .guess-input::placeholder {
-  color: #898478;
+  color: #6f695f;
 }
 
 .guess-input:focus-visible {
   border-color: var(--accent);
-  outline: 2px solid rgb(152 75 52 / 18%);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
