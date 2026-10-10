@@ -8,7 +8,7 @@ This roadmap makes database readiness and additional content sources explicit, s
 - **Catalog foundation — 2,296 Tenrai records imported:** The top 100 pages produced 2,296 usable records and 204 mapper rejections. Fullmetal Alchemist: Brotherhood is manually scheduled for 2026-10-08. The new daily-random migration will automatically approve only playable Tenrai records; incomplete and explicitly Rx/Hentai-rated records remain out of daily selection.
 - **Database-backed gameplay — merged:** PR #3 and persisted daily assignment are merged. Supabase mode remains opt-in; the daily-assignment migration's application state is not confirmed here.
 - **External sources — assessment and first movie adapter complete:** Tenrai is the anime provider. The bounded TMDB movie importer and service-role RPC are implemented; the project owner reports applying its migration to the intended Supabase project. No live TMDB preview or data import has occurred because no API key is configured locally. TMDB attribution and retention/removal handling remain prerequisites for public display. Google Books is field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent ingestion. See [the source evaluation](./docs/source-evaluation.md).
-- **Gameplay UI follow-ups — planned:** Reduce the brown-on-black contrast, remove the “Written with Malrewrite” credit, and implement the accepted anime title suggestions and skip behavior.
+- **Gameplay UI polish — in progress:** The warm page background and input contrast have been improved, and the MAL Rewrite editorial suffix is omitted from public puzzle copy. Anime title suggestions and skip behavior remain planned.
 
 ## Milestone 1 — Merge safe database-backed puzzle serving
 
