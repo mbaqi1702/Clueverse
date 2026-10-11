@@ -316,9 +316,29 @@ export function GameClient() {
                 <button
                   className="guess-submit"
                   disabled={loading || submitting || !guess.trim() || !puzzle}
+                  aria-label={submitting ? "Checking guess" : "Submit guess"}
+                  title={submitting ? "Checking guess" : "Submit guess"}
                   type="submit"
                 >
-                  {submitting ? "Checking…" : "Check title"}
+                  {submitting ? (
+                    <span aria-hidden="true" className="guess-submit-spinner" />
+                  ) : (
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      width="20"
+                    >
+                      <path
+                        d="M4.167 10h11.666m0 0-5-5m5 5-5 5"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.75"
+                      />
+                    </svg>
+                  )}
                 </button>
               </div>
               {suggestionError && <p className="suggestion-error" role="status">{suggestionError}</p>}
