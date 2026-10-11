@@ -1,0 +1,79 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { GET } from "./route";
+
+const suggestionsMocks = vi.hoisted(() => ({
+  getAnimeTitleSuggestions: vi.fn(),
+}));
+
+vi.mock("@/lib/game/anime-title-suggestions", () => ({
+  getAnimeTitleSuggestions: suggestionsMocks.getAnimeTitleSuggestions,
+}));
+
+beforeEach(() => {
+  vi.stubEnv("GAME_DATA_SOURCE", "supabase");
+  suggestionsMocks.getAnimeTitleSuggestions.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
+describe("anime title suggestions API", () => {
+  it("returns matching titles without caching and supports a one-letter query", async () => {
+    suggestionsMocks.getAnimeTitleSuggestions.mockResolvedValue(["Attack on Titan"]);
+
+    const response = await GET(new Request("http://localhost/api/game/suggestions?q=a"));
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(data).toEqual({ suggestions: ["Attack on Titan"] });
+    expect(suggestionsMocks.getAnimeTitleSuggestions).toHaveBeenCalledWith(
+      "a",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    );
+  });
+
+  it("does not query the database for a blank search", async () => {
+    const response = await GET(new Request("http://localhost/api/game/suggestions?q=%20"));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ suggestions: [] });
+    expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+  });
+
+  it("rejects searches longer than the guess field limit", async () => {
+    const query = "a".repeat(101);
+    const response = await GET(
+      new Request(`http://localhost/api/game/suggestions?q=${query}`),
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+  });
+
+  it("keeps sample mode independent of Supabase", async () => {
+    vi.stubEnv("GAME_DATA_SOURCE", "sample");
+
+    const response = await GET(new Request("http://localhost/api/game/suggestions?q=a"));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ suggestions: [] });
+    expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+  });
+
+  it("returns an explicit unavailable response when database search fails", async () => {
+    suggestionsMocks.getAnimeTitleSuggestions.mockRejectedValue(new Error("Database offline"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await GET(new Request("http://localhost/api/game/suggestions?q=a"));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      error: "Title suggestions are temporarily unavailable.",
+    });
+  });
+});

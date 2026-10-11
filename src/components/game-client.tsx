@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import type { Clue, PublicPuzzle } from "@/lib/game/content";
@@ -18,6 +18,10 @@ export function GameClient() {
   const [puzzle, setPuzzle] = useState<PublicPuzzle | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [guess, setGuess] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [dismissedSuggestionQuery, setDismissedSuggestionQuery] = useState("");
+  const [suggestionError, setSuggestionError] = useState("");
   const [guesses, setGuesses] = useState<GuessRecord[]>([]);
   const [clues, setClues] = useState<Clue[]>([]);
   const [status, setStatus] = useState<GameStatus>("playing");
@@ -49,10 +53,75 @@ export function GameClient() {
     };
   }, [loadAttempt]);
 
+  useEffect(() => {
+    const query = guess.trim();
+    if (!puzzle || !query || query === dismissedSuggestionQuery || status !== "playing") {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/game/suggestions?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
+        );
+        const result = (await response.json()) as
+          | { suggestions: string[] }
+          | { error: string };
+        if (!response.ok || "error" in result) {
+          throw new Error("error" in result ? result.error : "Title suggestions are unavailable.");
+        }
+        setSuggestions(result.suggestions);
+        setSuggestionError("");
+      } catch {
+        if (!controller.signal.aborted) {
+          setSuggestions([]);
+          setSuggestionError("Title suggestions are unavailable. You can still enter a guess.");
+        }
+      }
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [dismissedSuggestionQuery, guess, puzzle, status]);
+
   function retryLoadPuzzle() {
     setLoadError("");
     setLoading(true);
     setLoadAttempt((attempt) => attempt + 1);
+  }
+
+  function selectSuggestion(title: string) {
+    setGuess(title);
+    setDismissedSuggestionQuery(title);
+    setSuggestions([]);
+    setActiveSuggestion(-1);
+  }
+
+  function handleGuessKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (!suggestions.length) {
+      if (event.key === "Escape") setDismissedSuggestionQuery(guess.trim());
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestion((active) => (active + 1) % suggestions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestion((active) => (active <= 0 ? suggestions.length - 1 : active - 1));
+    } else if (event.key === "Enter" && activeSuggestion >= 0) {
+      event.preventDefault();
+      selectSuggestion(suggestions[activeSuggestion]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setDismissedSuggestionQuery(guess.trim());
+      setSuggestions([]);
+      setActiveSuggestion(-1);
+    }
   }
 
   async function submitGuess(event: FormEvent<HTMLFormElement>) {
@@ -81,6 +150,9 @@ export function GameClient() {
         { value: guess.trim(), result: result.correct ? "correct" : "wrong" },
       ]);
       setGuess("");
+      setSuggestions([]);
+      setSuggestionError("");
+      setActiveSuggestion(-1);
       const nextClue = result.correct ? undefined : result.clue;
       if (nextClue) setClues((previous) => [...previous, nextClue]);
       if (result.completed) {
@@ -189,24 +261,87 @@ export function GameClient() {
             <form className="guess-form" onSubmit={submitGuess}>
               <label className="section-label" htmlFor="anime-guess">Your guess</label>
               <div className="guess-controls">
-                <Input
-                  autoComplete="off"
-                  className="guess-input"
-                  id="anime-guess"
-                  maxLength={100}
-                  onChange={(event) => setGuess(event.target.value)}
-                  placeholder="Anime title"
-                  value={guess}
-                  disabled={loading || submitting || !puzzle}
-                />
+                <div className="guess-input-wrap">
+                  <Input
+                    aria-activedescendant={
+                      activeSuggestion >= 0 ? `anime-suggestion-${activeSuggestion}` : undefined
+                    }
+                    aria-autocomplete="list"
+                    aria-controls="anime-title-suggestions"
+                    aria-expanded={suggestions.length > 0}
+                    autoComplete="off"
+                    className="guess-input"
+                    id="anime-guess"
+                    maxLength={100}
+                    onChange={(event) => {
+                      setGuess(event.target.value);
+                      setDismissedSuggestionQuery("");
+                      setSuggestions([]);
+                      setSuggestionError("");
+                      setActiveSuggestion(-1);
+                    }}
+                    onKeyDown={handleGuessKeyDown}
+                    placeholder="Anime title"
+                    role="combobox"
+                    value={guess}
+                    disabled={loading || submitting || !puzzle}
+                  />
+                  {suggestions.length > 0 && (
+                    <ul
+                      className="suggestion-list"
+                      id="anime-title-suggestions"
+                      role="listbox"
+                    >
+                      {suggestions.map((title, index) => (
+                        <li
+                          aria-selected={index === activeSuggestion}
+                          className={
+                            index === activeSuggestion
+                              ? "suggestion-option is-active"
+                              : "suggestion-option"
+                          }
+                          id={`anime-suggestion-${index}`}
+                          key={title}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onMouseEnter={() => setActiveSuggestion(index)}
+                          onClick={() => selectSuggestion(title)}
+                          role="option"
+                        >
+                          {title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <button
                   className="guess-submit"
                   disabled={loading || submitting || !guess.trim() || !puzzle}
+                  aria-label={submitting ? "Checking guess" : "Submit guess"}
+                  title={submitting ? "Checking guess" : "Submit guess"}
                   type="submit"
                 >
-                  {submitting ? "Checking…" : "Check title"}
+                  {submitting ? (
+                    <span aria-hidden="true" className="guess-submit-spinner" />
+                  ) : (
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      width="20"
+                    >
+                      <path
+                        d="M4.167 10h11.666m0 0-5-5m5 5-5 5"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.75"
+                      />
+                    </svg>
+                  )}
                 </button>
               </div>
+              {suggestionError && <p className="suggestion-error" role="status">{suggestionError}</p>}
               {error && <p className="error-copy" role="alert">{error}</p>}
             </form>
           ) : status !== "playing" ? (
