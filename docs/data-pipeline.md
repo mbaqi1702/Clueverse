@@ -55,7 +55,9 @@ Imports are idempotent by `(provider, provider_id)`; Tenrai is recorded as the p
 
 ### Additional providers
 
-Google Books is a field-scoped candidate; Wikidata is a secondary manga metadata candidate, while AniList is excluded from persistent ingestion under its current terms. See [the source evaluation](./source-evaluation.md). Add further sources one at a time after reviewing current reuse terms, attribution requirements, rate limits, and credential needs. Each adapter must map into the canonical tables and have focused validation/tests. The automatic Tenrai eligibility policy does not grant approval to another provider; each source needs its own eligibility decision. Flag possible cross-provider matches for review instead of fuzzy-merging different editions or adaptations.
+**Next implementation priority: complete the TMDB movie vertical as a separate daily game.** The owner chose separate daily games per media type; movie titles must not enter the anime daily schedule. The TMDB importer and migration exist, but the latest count check (2026-10-12) found 0 movie rows, and the live no-write preview has not been run because `TMDB_API_KEY` is not configured locally. Once configured, review `npm run import:tmdb` output, then implement movie-specific daily assignment/serving and eligibility without changing anime. Never run `--apply` without separate explicit batch approval. Complete TMDB attribution and retention/removal safeguards before public display. See [the source evaluation](./source-evaluation.md) and [next-chat handoff](../progress.md).
+
+After TMDB, consider Google Books only for fields covered by explicit rights and provider terms; do not persist descriptions/covers by default. Wikidata is secondary metadata for a separate manga game, not a standalone clue source. AniList is excluded from persistent ingestion under its current terms. Add sources one at a time, review current terms, attribution, rate limits, and credentials, and give each its own eligibility policy and tests. Flag possible cross-provider matches for human review instead of fuzzy-merging adaptations or editions.
 
 ## Serving and cache behavior
 
