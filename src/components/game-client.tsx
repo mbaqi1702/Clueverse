@@ -14,7 +14,16 @@ type GuessRecord = {
   result: "wrong" | "correct";
 };
 
-export function GameClient() {
+type GameClientProps = {
+  vertical?: "anime" | "movie";
+};
+
+export function GameClient({ vertical = "anime" }: GameClientProps) {
+  const isMovie = vertical === "movie";
+  const mediaName = isMovie ? "movie" : "anime";
+  const titleName = isMovie ? "Movie title" : "Anime title";
+  const todayEndpoint = isMovie ? "/api/game/movies/today" : "/api/game/today";
+
   const [puzzle, setPuzzle] = useState<PublicPuzzle | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [guess, setGuess] = useState("");
@@ -30,11 +39,12 @@ export function GameClient() {
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
+  const maxAttempts = puzzle?.maxAttempts ?? (isMovie ? 3 : 5);
 
   useEffect(() => {
     let active = true;
 
-    fetch("/api/game/today")
+    fetch(todayEndpoint)
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load today’s puzzle.");
         return (await response.json()) as PublicPuzzle;
@@ -51,11 +61,17 @@ export function GameClient() {
     return () => {
       active = false;
     };
-  }, [loadAttempt]);
+  }, [loadAttempt, todayEndpoint]);
 
   useEffect(() => {
     const query = guess.trim();
-    if (!puzzle || !query || query === dismissedSuggestionQuery || status !== "playing") {
+    if (
+      isMovie ||
+      !puzzle ||
+      !query ||
+      query === dismissedSuggestionQuery ||
+      status !== "playing"
+    ) {
       return;
     }
 
@@ -86,7 +102,7 @@ export function GameClient() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [dismissedSuggestionQuery, guess, puzzle, status]);
+  }, [dismissedSuggestionQuery, guess, isMovie, puzzle, status]);
 
   function retryLoadPuzzle() {
     setLoadError("");
@@ -131,7 +147,7 @@ export function GameClient() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch("/api/game/today", {
+      const response = await fetch(todayEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -177,19 +193,26 @@ export function GameClient() {
           <Link className="wordmark" href="/" aria-label="ClueVerse home">
             ClueVerse
           </Link>
-          <span className="edition-label">Daily anime puzzle</span>
+          <nav aria-label="Daily games" className="edition-nav">
+            <Link aria-current={!isMovie ? "page" : undefined} className="edition-link" href="/">
+              Anime
+            </Link>
+            <Link aria-current={isMovie ? "page" : undefined} className="edition-link" href="/movies">
+              Movies
+            </Link>
+          </nav>
         </div>
       </header>
 
       <main className="page-width game-page" id="main-content" aria-labelledby="page-title">
         <section className="page-intro">
-          <h1 id="page-title">Name the anime.</h1>
+          <h1 id="page-title">Name the {mediaName}.</h1>
           <p className="intro-copy">
             Read the synopsis. Each wrong guess reveals another clue.
           </p>
         </section>
 
-        <section className="game-sheet" aria-label="Today’s anime puzzle">
+        <section className="game-sheet" aria-label={`Today’s ${mediaName} puzzle`}>
           <div className="puzzle-meta">
             <span>Today’s puzzle</span>
             <span>{puzzle ? formatPuzzleDate(puzzle.date) : "Loading date"}</span>
@@ -213,7 +236,7 @@ export function GameClient() {
 
           <div
             aria-label="Guesses remaining"
-            aria-valuemax={puzzle?.maxAttempts ?? 5}
+            aria-valuemax={maxAttempts}
             aria-valuemin={0}
             aria-valuenow={attemptsLeft}
             className="attempts"
@@ -224,7 +247,7 @@ export function GameClient() {
               <span>{puzzle ? `${attemptsLeft} of ${puzzle.maxAttempts}` : "—"}</span>
             </div>
             <div aria-hidden="true" className="attempt-marks">
-              {Array.from({ length: puzzle?.maxAttempts ?? 5 }, (_, index) => (
+              {Array.from({ length: maxAttempts }, (_, index) => (
                 <span className={index < attemptsLeft ? "attempt-mark is-open" : "attempt-mark"} key={index} />
               ))}
             </div>
@@ -259,19 +282,19 @@ export function GameClient() {
 
           {status === "playing" && puzzle ? (
             <form className="guess-form" onSubmit={submitGuess}>
-              <label className="section-label" htmlFor="anime-guess">Your guess</label>
+              <label className="section-label" htmlFor={`${mediaName}-guess`}>Your guess</label>
               <div className="guess-controls">
                 <div className="guess-input-wrap">
                   <Input
                     aria-activedescendant={
                       activeSuggestion >= 0 ? `anime-suggestion-${activeSuggestion}` : undefined
                     }
-                    aria-autocomplete="list"
-                    aria-controls="anime-title-suggestions"
+                    aria-autocomplete={!isMovie ? "list" : undefined}
+                    aria-controls={!isMovie ? "anime-title-suggestions" : undefined}
                     aria-expanded={suggestions.length > 0}
                     autoComplete="off"
                     className="guess-input"
-                    id="anime-guess"
+                    id={`${mediaName}-guess`}
                     maxLength={100}
                     onChange={(event) => {
                       setGuess(event.target.value);
@@ -281,7 +304,7 @@ export function GameClient() {
                       setActiveSuggestion(-1);
                     }}
                     onKeyDown={handleGuessKeyDown}
-                    placeholder="Anime title"
+                    placeholder={titleName}
                     role="combobox"
                     value={guess}
                     disabled={loading || submitting || !puzzle}
@@ -356,14 +379,35 @@ export function GameClient() {
         </section>
 
         <p className="play-note">
-          Five guesses. Each miss opens a new clue. Your round resets if you refresh.
+          {isMovie
+            ? "Three guesses. A wrong guess opens the next movie clue. Your round resets if you refresh."
+            : "Five guesses. Each miss opens a new clue. Your round resets if you refresh."}
         </p>
       </main>
 
       <footer className="site-footer">
         <div className="page-width footer-content">
           <span>ClueVerse</span>
-          <span>Daily anime puzzle</span>
+          {isMovie ? (
+            <div className="tmdb-attribution">
+              <a
+                aria-label="The Movie Database (TMDB)"
+                className="tmdb-logo-link"
+                href="https://www.themoviedb.org"
+                rel="noreferrer"
+                target="_blank"
+              >
+                {/* Official TMDB logo, as required by the provider's current API terms. */}
+                <span aria-hidden="true" className="tmdb-logo">TMDB</span>
+              </a>
+              <span>
+                This application uses TMDB and the TMDB APIs but is not endorsed, certified, or
+                otherwise approved by TMDB.
+              </span>
+            </div>
+          ) : (
+            <span>Daily anime puzzle</span>
+          )}
         </div>
       </footer>
     </>

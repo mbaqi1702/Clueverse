@@ -20,6 +20,7 @@ describe("mapTmdbMovie", () => {
   it("maps a movie with provenance, aliases, and known genres", () => {
     expect(mapTmdbMovie(sampleMovie, genres)).toEqual({
       provider_id: "123",
+      adult: false,
       title: "A Sample Film",
       original_title: "サンプル映画",
       synopsis: sampleMovie.overview,
@@ -38,6 +39,7 @@ describe("mapTmdbMovie", () => {
   it("rejects invalid ids, adult records, and low-information movies", () => {
     expect(mapTmdbMovie({ ...sampleMovie, id: 0 }, genres)).toBeNull();
     expect(mapTmdbMovie({ ...sampleMovie, adult: true }, genres)).toBeNull();
+    expect(mapTmdbMovie({ ...sampleMovie, adult: undefined }, genres)).toBeNull();
     expect(mapTmdbMovie({ ...sampleMovie, title: "" }, genres)).toBeNull();
     expect(mapTmdbMovie({ ...sampleMovie, overview: "Too short." }, genres)).toBeNull();
   });
