@@ -1,61 +1,58 @@
 # ClueVerse progress and handoff
 
-Last updated: 2026-10-09
+Last updated: 2026-10-12
 
 ## Product aim
 
-Build a polished daily media mystery game: players identify a title from a synopsis and progressively revealed clues. Start with anime; later reuse the game engine for movies, TV, books, manga, and other content. Prioritize fast deployment, accessible/mobile-friendly UX, low operating cost, and small specs with tests. Keep humans responsible for licensing, product choices, secrets, database operations, and production approval.
+Build a polished daily media mystery game: players identify a title from a synopsis and progressively revealed clues. Anime is the first vertical. Movies, books, and manga are planned as separate daily games, not mixed into the anime puzzle. Prioritize accessible/mobile-friendly UX, low operating cost, and human approval for licensing, credentials, database writes, and production changes.
 
 ## Current repository state
 
-- PR #3 has merged to `main` (merge commit `d69ff17`), as has persisted daily assignment and automatic Tenrai eligibility. Supabase mode remains opt-in; the daily-assignment migration's application state is not confirmed here.
-- The first feature PR, #1, was merged into `main` on 2026-10-05. Its CI passed and Vercel reported a successful preview deployment.
-- UI/UX PR #2 was merged into `main` on 2026-10-05. The paper-and-ink redesign, responsive layout, accessibility affordances, and loading/retry states are now part of the default branch.
-- Merged commits:
-  - `8bcced8` — first playable daily puzzle slice.
-  - `05f9ba6` — Supabase catalog schema and importer preparation.
-  - `cae2e18` — merge of PR #2, the editorial UI redesign.
-- PR #3, “Add opt-in read-only Supabase puzzle serving,” is merged. Supabase remains opt-in and sample mode is still the default.
-- The first playable UI uses an original fictional sample puzzle. The daily answer and clues stay server-side; wrong guesses reveal a clue, guesses are normalized, and the round ends after five attempts.
-- The UI has loading/error states, keyboard form submission, reduced-motion support, landmarks, and a skip link. The merged redesign passed local tests, lint, build, and Impeccable scans at 390px and 1440px; PR #2 CI and Vercel checks passed.
-- 21st.dev CLI login and component search were verified. One free component retrieval was used to inform the custom input component. Keep catalog search as the low-cost default; check usage before paid retrieval/generation.
+- PRs #3, #5, #10, and #11 are merged.
+- PR #10 improved background/input contrast and removes the trailing MAL Rewrite editor suffix from public synopsis text.
+- PR #11 added database-backed approved-anime title suggestions with keyboard selection. Suggestions do not include today's scheduled answer, and choosing one fills the guess field without submitting it.
+- PR #7 remains open with conflicts and outdated launch documentation; do not merge it as-is. Use this handoff and the current source documents instead.
+- Answers and unrevealed clues stay server-side; wrong guesses reveal clues and rounds end after five attempts.
+- The UI has loading/error states, keyboard form submission, reduced-motion support, landmarks, and a skip link.
 - GitHub Actions CI runs tests, lint, and build.
-- Previous local validation passed tests, lint, and production build. Impeccable rendered-page scans at 390px and 1440px reported no findings.
-- `.env.local` is ignored by Git. `.env.example` contains names only and should remain trackable. Never print, commit, or share secret values.
+- `.env.local` is ignored by Git. `.env.example` contains variable names only. Never print, commit, or share secret values.
 
 ## Data status
 
-- The project owner confirmed the intended Supabase project migration and RLS state on 2026-10-05. The schema, Tenrai importer, and opt-in runtime reader are in `main`; the new daily-assignment migration is being developed separately.
-- The catalog schema includes typed common media fields (including `synopsis`), source provenance/snapshots, aliases, genres/studios, review status, and scheduled daily puzzles. Only approved records can be scheduled/published.
-- The Tenrai importer supports paged fetching, validation, source IDs/attribution metadata, retry/backoff, a five-record dry-run preview, and idempotent batched upserts. It defaults to a one-page no-write dry run; writing requires explicit `--apply`.
-- The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai for anime. A bounded TMDB movie importer and service-role RPC migration are implemented; the project owner reports applying the TMDB migration to the intended Supabase project. No TMDB API key is configured locally, so no live preview or TMDB data import has occurred. TMDB attribution and retention/removal safeguards remain necessary before public display.
-- **Initial import completed 2026-10-07:** 2,296 usable Tenrai records were written from the top 100 pages; 204 were rejected by validation. The latest Supabase state verified 2,296 source rows.
-- **First puzzle approved and scheduled:** Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) is approved for `2026-10-08`; the schedule was verified in Supabase. The other imported rows remain pending review.
-- The configured Supabase project has the catalog/RLS and Tenrai import migrations applied, with FMA scheduled for 2026-10-08. The daily-random/eligibility migration is in `main`; its application state is not confirmed here.
-- Game API/UI still defaults to the fictional sample puzzle. Supabase mode is opt-in. Once the daily-random migration is applied, first requests persist one playable approved anime per UTC date; the existing FMA schedule is preserved.
-- Google Books remains field-scoped research; Wikidata is secondary manga metadata research, and AniList is excluded from persistent ingestion under its current terms.
+- The project owner reports applying the catalog/RLS, Tenrai, daily-random assignment, and TMDB migrations to the intended Supabase project. Verify the live migration state before new database writes.
+- The project owner reports reviewing MyAnimeList terms for the intended use and selected Tenrai for anime. Tenrai writes require explicit `--apply`.
+- **Catalog counts checked 2026-10-12:** 2,296 anime rows, all associated with Tenrai; 2,272 anime rows are approved; 0 TMDB movie rows exist. These are point-in-time counts; refresh them before importing.
+- A bounded TMDB movie importer and service-role RPC exist, but `TMDB_API_KEY` is not configured in the current local environment. No live TMDB dry run has been performed.
+- TMDB attribution and cache-expiry, correction/removal, and purge safeguards are required before any TMDB-backed content is displayed publicly.
+- Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) was verified scheduled for `2026-10-08`; check live assignments before relying on historical schedule details.
+- The owner chose separate daily games per media vertical. Keep movies, books, and manga out of the anime daily puzzle.
+- Google Books is a field-scoped candidate; Wikidata is a secondary manga metadata source; AniList is excluded from persistent ingestion under the screened terms.
 
 ## Immediate next steps
 
-1. Configure `TMDB_API_KEY` in `.env.local` and review `npm run import:tmdb` dry-run output; do not run `--apply` without explicit batch approval. The migration is reported applied by the project owner.
-2. Implement TMDB attribution UI and cache/removal purge handling before displaying TMDB-backed content publicly.
-3. Confirm the daily-random Tenrai eligibility migration is applied and verify end-to-end puzzle serving/privacy before enabling Supabase mode in production.
-4. Continue Google Books field-permission and Wikidata manga-classification work; do not persist AniList catalog data.
+1. **Next implementation PR: launch a separate TMDB movies daily vertical.** Configure `TMDB_API_KEY` locally (never paste it into chat), run and review the no-write `npm run import:tmdb` preview, and recheck current provider terms.
+2. Keep anime behavior unchanged. Add separate movie scheduling/serving, source-specific reviewed eligibility and clue rules, provenance, and focused tests. Never expose pending-review records or answers in public responses.
+3. Implement the required TMDB logo/notice and applicable cache-expiry, correction/removal, and purge process before public display.
+4. Do not run `--apply` without a reviewed preview and separate explicit batch approval. Verify the movie vertical in a Vercel preview before production.
+5. After TMDB, assess Google Books for explicitly permitted fields and Wikidata as metadata enrichment for a separate manga game. Do not persist AniList data.
 
-## Token-economy handoff for a new chat
+## Copyable handoff prompt for a new chat
 
-Current handoff: PR #3 and the daily-assignment feature are merged. The project owner reports applying the TMDB movie importer migration; no TMDB live preview or data import has been performed because the API key is absent locally. Add it to `.env.local`, review a dry run, and retain explicit approval before any import. TMDB attribution and retention/removal handling are required before public display. Supabase has 2,296 Tenrai rows and FMA is scheduled for 2026-10-08; sample mode remains the default.
+```text
+Continue ClueVerse from the latest origin/main. PR #11 (approved-anime title suggestions) and PR #10 (contrast/synopsis cleanup) are merged. The owner decided that movies, books, and manga should have separate daily games, not be mixed into the anime puzzle.
 
-The original handoff below is retained as historical context and is outdated:
+The next implementation PR must prioritize a separate TMDB movies daily vertical. A bounded TMDB importer and service-role migration already exist; the project owner reports applying the migration. A Supabase count check on 2026-10-12 found 2,296 Tenrai anime rows, 2,272 approved anime rows, and zero TMDB movie rows. Refresh counts before relying on them.
 
-> ClueVerse's latest `main` includes merged PR #2's paper-and-ink UI redesign. PR #3 (opt-in, read-only Supabase puzzle serving) remains open with merge conflicts. The project owner reports the catalog/RLS and Tenrai RPC migrations applied and MyAnimeList terms reviewed for the intended use. Tenrai is selected; the Jikan public API is no longer used. On 2026-10-07 the owner approved the first batch (24 usable records; one rejected) and Fullmetal Alchemist: Brotherhood (MAL ID 5114) was approved and scheduled for 2026-10-08. The other imported records remain pending review. Next resolve PR #3 and verify scheduled puzzle serving/privacy before enabling Supabase mode. Gameplay still uses the fictional sample by default. See `milestones.md` and `docs/data-pipeline.md`; keep `.env.local` secret and untracked.
+TMDB_API_KEY is not configured in the current local environment. First inspect the current code/docs and the existing TMDB importer. Ask me to configure the key in ignored .env.local before running the no-write `npm run import:tmdb` preview. Never ask me to paste secrets into chat. Do not run any importer with --apply or write to Supabase without a reviewed preview and separate explicit approval.
 
-## Workflow / token-cost habits
+Implement the movie vertical without changing anime behavior: separate daily assignment/serving, explicit source-specific eligibility and clue rules, provenance, focused tests, and no answer/pending-review leakage. Before public display, implement the required TMDB logo/notice and cache-expiry, correction/removal, and purge handling; recheck current terms. Validate with tests, lint, build, and a Vercel preview, then open a PR and stop for my review/merge.
 
-- Start a new chat by pasting the handoff above and asking for one bounded next step.
-- Point the agent to the relevant spec, file(s), and exact failing test/log instead of pasting the full blueprint or repository.
-- Ask for a small diff and request a short changed-files/tests/risks summary.
-- Keep product/architecture decisions in this file or the relevant spec, not repeated in every prompt.
-- Prefer tests, lint, build, CI, and preview links as evidence over repeatedly asking for broad reviews.
-- Use 21st.dev search first; inspect usage/quota before retrieving code or using generation.
-- Avoid spawning multiple agents for the same work; use a test-first handoff only where it provides independent value.
+Google Books is field-scoped research; Wikidata is secondary manga metadata only; AniList must not be used for persistent ingestion. Use Windows-style paths for commands. Keep unrelated untracked user files untouched.
+```
+
+## Workflow / cost habits
+
+- Keep PRs feature-sized and ask for a small diff with changed files, tests, and risks summarized.
+- Prefer targeted tests, CI, lint, build, and preview evidence over repeated broad reviews.
+- Use 21st.dev search first; inspect usage/quota before paid retrieval or generation.
+- Never commit `.env.local`, API keys, or Supabase secrets.

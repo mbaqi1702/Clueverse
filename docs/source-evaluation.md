@@ -2,11 +2,9 @@
 
 Last screened: 2026-10-09. The project owner has authorized proceeding with the accepted candidates. This is a product/engineering review, not legal advice. Integrations must still honor provider-specific attribution, retention, rate-limit, and access requirements; recheck linked terms as they can change.
 
-## Recommendation
-
 ## Current status
 
-The bounded TMDB movie importer and service-role-only database RPC are implemented. The project owner reports applying the TMDB migration to the intended Supabase project. A live API dry run and any TMDB data import remain pending because `TMDB_API_KEY` is not configured locally. Do not run an import write without reviewing a dry-run preview and receiving separate explicit batch approval. Required TMDB attribution and retention/removal handling must be in place before public display.
+**Priority: TMDB movies are the next source/vertical to complete.** The owner chose separate daily games by media type; do not mix movies into the anime puzzle. The bounded importer and service-role-only database RPC are implemented, and the project owner reports applying the TMDB migration. As of the 2026-10-12 Supabase check, there are 0 TMDB movie rows and `TMDB_API_KEY` is not configured in the current local environment, so no live dry run has been reviewed. First configure the key locally and run the no-write preview. Never write data without a reviewed preview and separate explicit batch approval. Required TMDB attribution and retention/removal handling must be implemented before public display.
 
 ## Recommendations and constraints
 
@@ -40,10 +38,11 @@ Some remaining results are manga volumes or short works, so the selection still 
 
 ## Next bounded work
 
-1. Configure `TMDB_API_KEY` locally and run the no-write TMDB dry run; review mapped fields and rejection counts before any `--apply`. The migration is reported as applied, and the adapter uses bounded requests, provenance, no image import, and pending-review writes. Add TMDB's required logo/notice and cache/purge handling before public use.
-2. Refine the Wikidata selector to distinguish manga works/series from volumes and one-shots; continue treating the source as secondary metadata. Do not assume descriptions are puzzle clues.
-3. Implement Google Books only for fields covered by the owner's permission; default to identifiers and minimal bibliographic metadata, and do not persist descriptions/covers unless expressly allowed.
-4. Before any provider database write or public display, document permitted fields and uses, required attribution, retention/refresh rules, credentials, limits, and owner authorization. Keep all provider APIs out of the player request path.
+1. **Next implementation PR: finish a separate TMDB movie daily game.** First configure `TMDB_API_KEY` in ignored `.env.local`, run the no-write dry run, and review the mapping, eligibility, and rejection counts. The current importer uses bounded requests, provenance, no images, and pending-review writes.
+2. Keep the anime schedule/API unchanged. Add a movie-specific daily assignment/serving path, explicit reviewed eligibility and clue rules, focused tests, and no answer/pending-review leakage.
+3. Add TMDB's required logo/notice plus cache expiry and content correction/removal/purge handling before public display; verify in a Vercel preview before production.
+4. Do not run `--apply` until the owner separately approves the reviewed batch. Do not call source APIs in the player request path.
+5. After TMDB, refine Wikidata for separate manga-game metadata (not clue copy) and assess Google Books only for explicitly permitted fields. AniList remains excluded from persistent ingestion.
 
 ## Official documentation screened
 

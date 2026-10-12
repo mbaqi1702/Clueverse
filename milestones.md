@@ -5,10 +5,11 @@ This roadmap makes database readiness and additional content sources explicit, s
 ## Current position
 
 - **UI foundation — complete:** PR #2 is merged. The daily puzzle has a responsive paper-and-ink design, accessible structure, and loading/retry states.
-- **Catalog foundation — 2,296 Tenrai records imported:** The top 100 pages produced 2,296 usable records and 204 mapper rejections. Fullmetal Alchemist: Brotherhood is manually scheduled for 2026-10-08. The new daily-random migration will automatically approve only playable Tenrai records; incomplete and explicitly Rx/Hentai-rated records remain out of daily selection.
-- **Database-backed gameplay — merged:** PR #3 and persisted daily assignment are merged. Supabase mode remains opt-in; the daily-assignment migration's application state is not confirmed here.
-- **External sources — assessment and first movie adapter complete:** Tenrai is the anime provider. The bounded TMDB movie importer and service-role RPC are implemented; the project owner reports applying its migration to the intended Supabase project. No live TMDB preview or data import has occurred because no API key is configured locally. TMDB attribution and retention/removal handling remain prerequisites for public display. Google Books is field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent ingestion. See [the source evaluation](./docs/source-evaluation.md).
-- **Gameplay UI polish — in progress:** The warm page background and input contrast have been improved, and the MAL Rewrite editorial suffix is omitted from public puzzle copy. Approved-anime title suggestions are implemented in the current feature branch; skip behavior remains planned.
+- **Catalog foundation — 2,296 Tenrai anime rows:** Supabase counts checked 2026-10-12 found 2,296 anime, 2,272 approved, and 0 TMDB movies. Refresh these before import. Only records passing the documented provider-specific rules can be selected.
+- **Database-backed gameplay — implemented:** PR #3 and persisted daily assignment are merged; the project owner reports applying the required migrations. Reconfirm the live project/environment before new writes or production changes.
+- **External sources — next priority:** The TMDB movie importer and service-role RPC are implemented, but the catalog currently has zero TMDB movie rows and no live preview has been run because `TMDB_API_KEY` is not configured locally. The next implementation PR is a separate TMDB movie daily game; do not mix its puzzles with anime. Attribution and retention/removal safeguards are prerequisites for public display. Google Books remains field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent ingestion. See [the source evaluation](./docs/source-evaluation.md).
+- **Gameplay UI polish — current baseline:** PR #10's contrast/synopsis cleanup and PR #11's approved-anime title suggestions are merged. Keyboard-operable suggestions fill but do not submit a guess. Skip behavior remains a later follow-up.
+- **Catalog snapshot (2026-10-12):** 2,296 anime records, 2,272 approved, 0 TMDB movie records. Recheck before importing.
 
 ## Milestone 1 — Merge safe database-backed puzzle serving
 
@@ -39,9 +40,9 @@ Acceptance criteria:
 
 ## Milestone 3 — Populate and curate the anime catalog
 
-**Status: Import complete; automatic eligibility migration merged, application state unconfirmed**
+**Status: Import complete; eligibility migration merged and reported applied**
 
-The approved top-100-page Tenrai import completed with 2,296 usable records and 204 rejected entries. Fullmetal Alchemist: Brotherhood is scheduled for 2026-10-08. The merged migration promotes existing playable Tenrai rows and adds the same rule for subsequent imports; confirm it has been applied to the project.
+The approved top-100-page Tenrai import completed with 2,296 usable records and 204 rejected entries. A 2026-10-12 query found 2,272 approved anime; refresh this count as catalog state can change. The owner reports the migration that promotes playable Tenrai rows has been applied.
 
 Acceptance criteria:
 
@@ -53,7 +54,7 @@ Acceptance criteria:
 
 ## Milestone 4 — Prove end-to-end database readiness
 
-**Status: In progress; depends on applying the new migration and deployment configuration**
+**Status: Serving path implemented; verify operational readiness before changing production**
 
 Treat “database ready” as more than an applied migration: the approved catalog, schedule, server route, and operational safeguards must work together.
 
@@ -69,9 +70,9 @@ Acceptance criteria:
 
 ## Milestone 5 — Add additional media sources one at a time
 
-**Status: TMDB movie ingestion implemented; public display safeguards and other sources remain**
+**Status: Next implementation priority — separate TMDB movie daily game**
 
-TMDB movies are the first additional source; the bounded importer and service-role RPC are implemented. Google Books remains field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent catalog ingestion under its current terms. See [the source evaluation](./docs/source-evaluation.md).
+The bounded TMDB importer and service-role RPC are implemented, but no TMDB data has been imported. The current local environment has no `TMDB_API_KEY`, so the first gate is a no-write preview after the owner configures the key. The owner chose separate daily games for each media vertical. Prioritize completing the movie flow without changing anime; do not start another provider adapter first. See [the source evaluation](./docs/source-evaluation.md) and [the current handoff](./progress.md).
 
 Acceptance criteria for each new source:
 
@@ -82,6 +83,8 @@ Acceptance criteria for each new source:
 - Import, mapping, validation, attribution, and failure behavior have focused tests.
 - Define eligibility independently for each provider; the player request path never calls the provider directly.
 - Before public TMDB display, provide the required logo/notice and implement cache and removal/purge obligations.
+- Keep movie assignments and routes distinct from the anime daily game; never mix media types in the anime schedule.
+- Review the live dry-run mapping and rejection counts before any explicit, bounded `--apply` import.
 
 Do not build multiple adapters in advance or ingest images until image rights and storage/attribution requirements are settled.
 
