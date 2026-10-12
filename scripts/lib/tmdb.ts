@@ -1,5 +1,6 @@
 export type TmdbImportRecord = {
   provider_id: string;
+  adult: false;
   title: string;
   original_title: string | null;
   synopsis: string;
@@ -31,7 +32,7 @@ export function mapTmdbMovie(
     typeof value.id !== "number" ||
     !Number.isSafeInteger(value.id) ||
     value.id < 1 ||
-    value.adult === true
+    value.adult !== false
   ) {
     return null;
   }
@@ -78,6 +79,7 @@ export function mapTmdbMovie(
 
   return {
     provider_id: providerId,
+    adult: false,
     title,
     original_title: originalTitle,
     synopsis,
@@ -89,7 +91,7 @@ export function mapTmdbMovie(
     genres,
     studios: [],
     source_url: `https://www.themoviedb.org/movie/${providerId}`,
-    attribution_text: "Data from TMDB. This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.",
+    attribution_text: "This application uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.",
   };
 }
 
