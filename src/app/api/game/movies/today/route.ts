@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPublicPuzzle } from "@/lib/game/content";
-import { evaluateGuess } from "@/lib/game/guess";
+import { compareGuessClues, evaluateGuess } from "@/lib/game/guess";
 import { getSupabaseTmdbMoviePuzzleForDate } from "@/lib/game/supabase-tmdb-movie-puzzle";
+import { getSupabaseGuessClues } from "@/lib/game/supabase-guess-clues";
 import { TMDB_MOVIE_MAX_ATTEMPTS } from "@/lib/game/tmdb-movie-puzzle-mapper";
 
 const noStore = { "Cache-Control": "no-store" };
@@ -75,7 +76,23 @@ export async function POST(request: Request) {
         { status: 400, headers: noStore },
       );
     }
-    return NextResponse.json(evaluateGuess(guess, attemptNumber, puzzle), { headers: noStore });
+    const result = evaluateGuess(guess, attemptNumber, puzzle);
+    if (!result.correct) {
+      let guessedClues: Awaited<ReturnType<typeof getSupabaseGuessClues>>;
+      try {
+        guessedClues = await getSupabaseGuessClues(guess.trim(), puzzle.id, "movie");
+      } catch (error) {
+        console.error("Could not compare the submitted movie guess.", error);
+        return NextResponse.json(
+          { error: "Your guess could not be checked. Please try again." },
+          { status: 503, headers: noStore },
+        );
+      }
+      result.comparison = guessedClues
+        ? compareGuessClues(puzzle.clues, guessedClues)
+        : { available: false, fields: [] };
+    }
+    return NextResponse.json(result, { headers: noStore });
   } catch (error) {
     return unavailableResponse(error);
   }

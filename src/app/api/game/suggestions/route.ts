@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { getAnimeTitleSuggestions } from "@/lib/game/anime-title-suggestions";
+import { getTmdbMovieTitleSuggestions } from "@/lib/game/tmdb-title-suggestions";
 
 const noStore = { "Cache-Control": "no-store" };
 
 export async function GET(request: Request) {
-  const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
+  const params = new URL(request.url).searchParams;
+  const query = params.get("q")?.trim() ?? "";
+  const vertical = params.get("vertical") ?? "anime";
+  if (vertical !== "anime" && vertical !== "movie") {
+    return NextResponse.json(
+      { error: "Choose a valid game for title suggestions." },
+      { status: 400, headers: noStore },
+    );
+  }
+
   if (query.length > 100) {
     return NextResponse.json(
       { error: "Search text must be 100 characters or fewer." },
@@ -30,7 +40,10 @@ export async function GET(request: Request) {
 
   try {
     const puzzleDate = new Date().toISOString().slice(0, 10);
-    const suggestions = await getAnimeTitleSuggestions(query, puzzleDate);
+    const suggestions =
+      vertical === "movie"
+        ? await getTmdbMovieTitleSuggestions(query, puzzleDate)
+        : await getAnimeTitleSuggestions(query, puzzleDate);
     return NextResponse.json({ suggestions }, { headers: noStore });
   } catch (error) {
     console.error("Could not retrieve title suggestions.", error);

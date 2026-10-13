@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --paper: #302a24;
-  --sheet: #f3eee3;
-  --ink: #282620;
-  --muted: #676157;
-  --page-muted: #c0b8aa;
-  --line: #4a4339;
-  --sheet-line: #d8d1c5;
-  --accent: #984b34;
-  --success: #49664f;
+  color-scheme: light;
+  --paper: #f5f7fa;
+  --sheet: #ffffff;
+  --ink: #17202d;
+  --muted: #667085;
+  --page-muted: #7a8494;
+  --line: #e6e9ef;
+  --sheet-line: #e5e9f0;
+  --accent: #344054;
+  --success: #176b45;
 }
 
 @theme inline {
@@ -50,7 +50,7 @@ button:disabled {
 }
 
 ::selection {
-  background: #d8b4a5;
+  background: #dbe4f0;
   color: var(--ink);
 }
 
@@ -60,7 +60,7 @@ button:disabled {
 }
 
 .site-header {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid #e8ebf0;
 }
 
 .skip-link {
@@ -88,9 +88,8 @@ button:disabled {
 }
 
 .wordmark {
-  color: var(--sheet);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.5rem;
+  color: var(--ink);
+  font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: -0.045em;
   text-decoration: none;
@@ -106,19 +105,23 @@ button:disabled {
 
 .edition-nav {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .edition-link {
-  color: var(--page-muted);
-  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
   text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .edition-link[aria-current="page"] {
-  color: var(--sheet);
-  text-decoration: underline;
-  text-underline-offset: 0.3em;
+  background: #e9edf3;
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .edition-label,
@@ -130,7 +133,7 @@ button:disabled {
 
 .edition-label,
 .site-footer {
-  color: var(--page-muted);
+  color: var(--muted);
 }
 
 .edition-label,
@@ -157,18 +160,17 @@ button:disabled {
 
 .page-intro h1 {
   margin: 0.7rem 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.5rem, 7vw, 4rem);
-  font-weight: 500;
-  letter-spacing: -0.055em;
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+  font-weight: 650;
+  letter-spacing: -0.06em;
   line-height: 1.06;
-  color: var(--sheet);
+  color: var(--ink);
   text-wrap: balance;
 }
 
 .intro-copy {
   margin: 0.8rem 0 0;
-  color: var(--page-muted);
+  color: var(--muted);
   font-size: 1rem;
   line-height: 1.6;
 }
@@ -177,9 +179,11 @@ button:disabled {
   --line: var(--sheet-line);
 
   max-width: 47rem;
-  padding: 1.5rem 2rem 2rem;
+  padding: 1.5rem 1.75rem 1.75rem;
   border: 1px solid var(--sheet-line);
+  border-radius: 1rem;
   background: var(--sheet);
+  box-shadow: 0 1rem 2.5rem rgb(16 24 40 / 5%);
 }
 
 .puzzle-meta {
@@ -196,9 +200,9 @@ button:disabled {
 
 .synopsis-copy {
   margin: 0.8rem 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(1.15rem, 2.8vw, 1.4rem);
-  line-height: 1.65;
+  color: #303b4b;
+  font-size: clamp(1.0625rem, 2.4vw, 1.25rem);
+  line-height: 1.7;
 }
 
 .error-copy {
@@ -244,13 +248,14 @@ button:disabled {
 }
 
 .attempt-mark {
-  height: 0.2rem;
+  height: 0.25rem;
+  border-radius: 999px;
   flex: 1;
   background: var(--line);
 }
 
 .attempt-mark.is-open {
-  background: var(--accent);
+  background: #475467;
 }
 
 .clue-list,
@@ -261,8 +266,7 @@ button:disabled {
   list-style: none;
 }
 
-.clue-row,
-.guess-row {
+.clue-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -277,9 +281,88 @@ button:disabled {
   gap: 1rem;
 }
 
+.guess-row {
+  display: block;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.guess-row-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comparison-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--sheet-line);
+  border-radius: 0.65rem;
+  background: #f8f9fb;
+}
+
+.comparison-field.is-match {
+  border-color: #abefc6;
+  background: #ecfdf3;
+}
+
+.comparison-field.is-different {
+  background: #f8f9fb;
+}
+
+.comparison-label {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.comparison-value {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.comparison-result {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+}
+
+.comparison-result.is-match {
+  color: var(--success);
+}
+
+.comparison-result.is-different {
+  color: var(--muted);
+}
+
+.comparison-result.is-answer-higher,
+.comparison-result.is-answer-lower {
+  color: #475467;
+}
+
+.comparison-note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
 .clue-number {
   min-width: 1.1rem;
-  color: var(--accent);
+  color: var(--muted);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -335,20 +418,20 @@ button:disabled {
 .guess-input {
   min-width: 0;
   height: 2.875rem;
-  border-radius: 0.25rem;
-  border-color: #c9c3b8;
-  background: #fffefa;
+  border-radius: 0.625rem;
+  border-color: #d0d5dd;
+  background: #fff;
   color: var(--ink);
   box-shadow: none;
 }
 
 .guess-input::placeholder {
-  color: #6f695f;
+  color: #98a2b3;
 }
 
 .guess-input:focus-visible {
-  border-color: var(--accent);
-  outline: 2px solid var(--accent);
+  border-color: #667085;
+  outline: 2px solid rgb(102 112 133 / 20%);
   outline-offset: 1px;
 }
 
@@ -361,15 +444,15 @@ button:disabled {
   margin: 0;
   padding: 0.25rem;
   border: 1px solid var(--sheet-line);
-  border-radius: 0.25rem;
+  border-radius: 0.75rem;
   background: var(--sheet);
-  box-shadow: 0 0.5rem 1.25rem rgb(40 38 32 / 18%);
+  box-shadow: 0 0.75rem 1.75rem rgb(16 24 40 / 12%);
   list-style: none;
 }
 
 .suggestion-option {
   padding: 0.65rem 0.75rem;
-  border-radius: 0.15rem;
+  border-radius: 0.5rem;
   color: var(--ink);
   cursor: pointer;
   font-size: 0.9rem;
@@ -377,7 +460,7 @@ button:disabled {
 
 .suggestion-option.is-active,
 .suggestion-option:hover {
-  background: #e5e1d8;
+  background: #f2f4f7;
 }
 
 .suggestion-error {
@@ -389,28 +472,28 @@ button:disabled {
 
 .guess-submit {
   display: grid;
-  width: 2.875rem;
+  width: 3rem;
   height: 2.875rem;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--sheet);
+  border: 1px solid #344054;
+  border-radius: 0.625rem;
+  background: #344054;
+  color: #fff;
   transition:
     background-color 150ms ease,
     transform 150ms ease;
 }
 
 .guess-submit:hover:not(:disabled) {
-  background: #403d35;
+  background: #1d2939;
   transform: translateX(1px);
 }
 
 .guess-submit:disabled {
-  border-color: #d4cfc5;
-  background: #e5e1d8;
-  color: #6f695f;
+  border-color: #e4e7ec;
+  background: #f2f4f7;
+  color: #98a2b3;
 }
 
 .guess-submit-spinner {
@@ -443,19 +526,19 @@ button:disabled {
 
 .result-copy {
   margin: 0.55rem 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.25rem;
+  color: var(--muted);
+  font-size: 1rem;
 }
 
 .result-copy span {
-  color: var(--accent);
+  color: var(--ink);
   font-weight: 700;
 }
 
 .play-note {
   max-width: 47rem;
   margin: 1rem 0 0;
-  color: var(--page-muted);
+  color: var(--muted);
   font-size: 0.75rem;
   line-height: 1.6;
 }
@@ -469,8 +552,7 @@ button:disabled {
 }
 
 .footer-content span:first-child {
-  color: var(--sheet);
-  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -478,7 +560,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: var(--page-muted);
+  color: var(--muted);
   font-size: 0.6875rem;
   line-height: 1.45;
 }
@@ -487,14 +569,14 @@ button:disabled {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  padding: 0.25rem;
-  background: #fff;
+  padding: 0;
+  background: transparent;
 }
 
 .tmdb-logo {
   display: block;
-  width: 5.625rem;
-  height: 2rem;
+  width: 3.75rem;
+  height: 1.25rem;
   overflow: hidden;
   background: center / contain no-repeat
     url("https://www.themoviedb.org/assets/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg");
@@ -519,10 +601,6 @@ button:disabled {
     padding: 1.2rem 1rem 1.5rem;
   }
 
-  .guess-controls {
-    flex-direction: column;
-  }
-
   .guess-submit {
     min-height: 2.875rem;
   }
@@ -530,6 +608,11 @@ button:disabled {
   .tmdb-attribution {
     max-width: 14rem;
     align-items: flex-start;
+  }
+
+  .footer-content {
+    align-items: flex-start;
+    padding-block: 0.75rem;
   }
 }
 

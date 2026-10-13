@@ -4,15 +4,20 @@ import { GET, POST } from "./route";
 
 const supabaseMocks = vi.hoisted(() => ({
   getPuzzleForDate: vi.fn(),
+  getGuessClues: vi.fn(),
 }));
 
 vi.mock("@/lib/game/supabase-puzzle", () => ({
   getSupabasePuzzleForDate: supabaseMocks.getPuzzleForDate,
 }));
+vi.mock("@/lib/game/supabase-guess-clues", () => ({
+  getSupabaseGuessClues: supabaseMocks.getGuessClues,
+}));
 
 beforeEach(() => {
   vi.stubEnv("GAME_DATA_SOURCE", "sample");
   supabaseMocks.getPuzzleForDate.mockReset();
+  supabaseMocks.getGuessClues.mockReset();
 });
 
 afterEach(() => {
@@ -105,6 +110,65 @@ describe("today's game API", () => {
     expect(data).not.toHaveProperty("answer");
     expect(data).not.toHaveProperty("acceptedGuesses");
     expect(data).not.toHaveProperty("clues");
+  });
+
+  it("compares wrong anime guesses with available shared fields without revealing the answer", async () => {
+    vi.stubEnv("GAME_DATA_SOURCE", "supabase");
+    supabaseMocks.getPuzzleForDate.mockResolvedValue({
+      ...dailyPuzzle,
+      clues: [
+        { label: "Genre", value: "Mystery" },
+        { label: "Release year", value: "2024" },
+        { label: "Format", value: "TV" },
+        { label: "Episodes", value: "24" },
+      ],
+    });
+    supabaseMocks.getGuessClues.mockResolvedValue([
+      { label: "Genre", value: "Mystery · Comedy" },
+      { label: "Release year", value: "2020" },
+      { label: "Format", value: "Movie" },
+      { label: "Episodes", value: "12" },
+    ]);
+
+    const response = await POST(
+      new Request("http://localhost/api/game/today", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guess: "A known anime", attemptNumber: 1 }),
+      }),
+    );
+    const data = await response.json();
+
+    expect(data.comparison).toMatchObject({
+      available: true,
+      fields: [
+        { label: "Genre", result: "match", detail: "Matches: Mystery" },
+        { label: "Release year", result: "answer-higher", detail: "Answer is newer" },
+        { label: "Format", result: "different" },
+        { label: "Episodes", result: "answer-higher", detail: "Answer has more episodes" },
+      ],
+    });
+    expect(data).not.toHaveProperty("answer");
+  });
+
+  it("returns an explicit retryable error when anime comparison lookup fails", async () => {
+    vi.stubEnv("GAME_DATA_SOURCE", "supabase");
+    supabaseMocks.getPuzzleForDate.mockResolvedValue(dailyPuzzle);
+    supabaseMocks.getGuessClues.mockRejectedValue(new Error("Database offline"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await POST(
+      new Request("http://localhost/api/game/today", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guess: "A known anime", attemptNumber: 1 }),
+      }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(data).toEqual({ error: "Your guess could not be checked. Please try again." });
   });
 
   it("omits the MAL Rewrite editorial suffix from the public synopsis", async () => {

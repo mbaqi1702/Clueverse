@@ -3,15 +3,20 @@ import { GET } from "./route";
 
 const suggestionsMocks = vi.hoisted(() => ({
   getAnimeTitleSuggestions: vi.fn(),
+  getMovieTitleSuggestions: vi.fn(),
 }));
 
 vi.mock("@/lib/game/anime-title-suggestions", () => ({
   getAnimeTitleSuggestions: suggestionsMocks.getAnimeTitleSuggestions,
 }));
+vi.mock("@/lib/game/tmdb-title-suggestions", () => ({
+  getTmdbMovieTitleSuggestions: suggestionsMocks.getMovieTitleSuggestions,
+}));
 
 beforeEach(() => {
   vi.stubEnv("GAME_DATA_SOURCE", "supabase");
   suggestionsMocks.getAnimeTitleSuggestions.mockReset();
+  suggestionsMocks.getMovieTitleSuggestions.mockReset();
 });
 
 afterEach(() => {
@@ -33,6 +38,32 @@ describe("anime title suggestions API", () => {
       "a",
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     );
+  });
+
+  it("returns movie suggestions from the movie catalog", async () => {
+    suggestionsMocks.getMovieTitleSuggestions.mockResolvedValue(["Swapped"]);
+
+    const response = await GET(
+      new Request("http://localhost/api/game/suggestions?vertical=movie&q=sw"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ suggestions: ["Swapped"] });
+    expect(suggestionsMocks.getMovieTitleSuggestions).toHaveBeenCalledWith(
+      "sw",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    );
+    expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unsupported vertical", async () => {
+    const response = await GET(
+      new Request("http://localhost/api/game/suggestions?vertical=tv&q=sh"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+    expect(suggestionsMocks.getMovieTitleSuggestions).not.toHaveBeenCalled();
   });
 
   it("does not query the database for a blank search", async () => {
