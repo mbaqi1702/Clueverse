@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { dailyPuzzle, getPublicPuzzle } from "@/lib/game/content";
-import { evaluateGuess } from "@/lib/game/guess";
+import { compareGuessClues, evaluateGuess } from "@/lib/game/guess";
 import { getPuzzleForDate } from "@/lib/game/puzzle-source";
+import { getSupabaseGuessClues } from "@/lib/game/supabase-guess-clues";
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -72,7 +73,23 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(evaluateGuess(guess, attemptNumber, puzzle), { headers: noStore });
+    const result = evaluateGuess(guess, attemptNumber, puzzle);
+    if (!result.correct && process.env.GAME_DATA_SOURCE === "supabase") {
+      let guessedClues: Awaited<ReturnType<typeof getSupabaseGuessClues>>;
+      try {
+        guessedClues = await getSupabaseGuessClues(guess.trim(), puzzle.id, "anime");
+      } catch (error) {
+        console.error("Could not compare the submitted anime guess.", error);
+        return NextResponse.json(
+          { error: "Your guess could not be checked. Please try again." },
+          { status: 503, headers: noStore },
+        );
+      }
+      result.comparison = guessedClues
+        ? compareGuessClues(puzzle.clues, guessedClues)
+        : { available: false, fields: [] };
+    }
+    return NextResponse.json(result, { headers: noStore });
   } catch (error) {
     return unavailableResponse(error);
   }

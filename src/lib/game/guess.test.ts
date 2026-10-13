@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dailyPuzzle, getPublicPuzzle } from "./content";
-import { evaluateGuess, normalizeGuess } from "./guess";
+import { compareGuessClues, evaluateGuess, normalizeGuess } from "./guess";
 
 describe("normalizeGuess", () => {
   it("ignores punctuation, spacing, and letter case", () => {
@@ -26,6 +26,70 @@ describe("evaluateGuess", () => {
       correct: false,
       completed: false,
       clue: dailyPuzzle.clues[0],
+    });
+  });
+
+  describe("compareGuessClues", () => {
+    it("marks shared genres and reports year direction without revealing the target year", () => {
+      const result = compareGuessClues(
+        [
+          { label: "Genre", value: "Horror · Mystery" },
+          { label: "Release year", value: "2024" },
+        ],
+        [
+          { label: "Genre", value: "Horror · Comedy" },
+          { label: "Release year", value: "2021" },
+        ],
+      );
+
+      expect(result).toEqual({
+        available: true,
+        fields: [
+          {
+            label: "Genre",
+            guessValue: "Horror · Comedy",
+            result: "match",
+            detail: "Matches: Horror",
+          },
+          {
+            label: "Release year",
+            guessValue: "2021",
+            result: "answer-higher",
+            detail: "Answer is newer",
+          },
+        ],
+      });
+    });
+
+    it("compares only fields shared by the answer and guessed title", () => {
+      const result = compareGuessClues(
+        [
+          { label: "Genre", value: "Mystery" },
+          { label: "Studio", value: "Studio A" },
+        ],
+        [{ label: "Genre", value: "Comedy" }],
+      );
+
+      expect(result.fields).toEqual([
+        {
+          label: "Genre",
+          guessValue: "Comedy",
+          result: "different",
+          detail: "No shared values",
+        },
+      ]);
+    });
+
+    it("compares episode counts directionally", () => {
+      const result = compareGuessClues(
+        [{ label: "Episodes", value: "12" }],
+        [{ label: "Episodes", value: "24" }],
+      );
+
+      expect(result.fields[0]).toMatchObject({
+        result: "answer-lower",
+        detail: "Answer has fewer episodes",
+      });
     });
   });
 

@@ -5,18 +5,35 @@ import type { FormEvent, KeyboardEvent } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import type { Clue, PublicPuzzle } from "@/lib/game/content";
-import type { GuessResult } from "@/lib/game/guess";
+import type { GuessComparison, GuessResult } from "@/lib/game/guess";
 
 type GameStatus = "playing" | "won" | "lost";
 
 type GuessRecord = {
   value: string;
   result: "wrong" | "correct";
+  comparison?: GuessComparison;
 };
 
 type GameClientProps = {
   vertical?: "anime" | "movie";
 };
+
+function isPublicPuzzle(value: unknown): value is PublicPuzzle {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "date" in value &&
+    typeof value.date === "string" &&
+    "synopsis" in value &&
+    typeof value.synopsis === "string" &&
+    "maxAttempts" in value &&
+    typeof value.maxAttempts === "number"
+  );
+}
 
 export function GameClient({ vertical = "anime" }: GameClientProps) {
   const isMovie = vertical === "movie";
@@ -46,14 +63,34 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
 
     fetch(todayEndpoint)
       .then(async (response) => {
-        if (!response.ok) throw new Error("Could not load today’s puzzle.");
-        return (await response.json()) as PublicPuzzle;
+        const data: unknown = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message =
+            typeof data === "object" &&
+            data !== null &&
+            !Array.isArray(data) &&
+            "error" in data &&
+            typeof data.error === "string"
+              ? data.error
+              : "Today’s puzzle is temporarily unavailable. Please try again later.";
+          throw new Error(message);
+        }
+        if (!isPublicPuzzle(data)) {
+          throw new Error("The puzzle response was invalid. Please try again later.");
+        }
+        return data;
       })
       .then((data) => {
         if (active) setPuzzle(data);
       })
-      .catch(() => {
-        if (active) setLoadError("The puzzle could not be loaded. Check your connection and try again.");
+      .catch((error: unknown) => {
+        const message =
+          error instanceof TypeError
+            ? "Could not connect to the game server. Check your connection and try again."
+            : error instanceof Error
+              ? error.message
+              : "Today’s puzzle could not be loaded. Please try again.";
+        if (active) setLoadError(message);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -66,7 +103,6 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
   useEffect(() => {
     const query = guess.trim();
     if (
-      isMovie ||
       !puzzle ||
       !query ||
       query === dismissedSuggestionQuery ||
@@ -79,7 +115,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     const timeout = window.setTimeout(async () => {
       try {
         const response = await fetch(
-          `/api/game/suggestions?q=${encodeURIComponent(query)}`,
+          `/api/game/suggestions?vertical=${mediaName}&q=${encodeURIComponent(query)}`,
           { signal: controller.signal },
         );
         const result = (await response.json()) as
@@ -102,7 +138,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [dismissedSuggestionQuery, guess, isMovie, puzzle, status]);
+  }, [dismissedSuggestionQuery, guess, mediaName, puzzle, status]);
 
   function retryLoadPuzzle() {
     setLoadError("");
@@ -163,7 +199,11 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
 
       setGuesses((previous) => [
         ...previous,
-        { value: guess.trim(), result: result.correct ? "correct" : "wrong" },
+        {
+          value: guess.trim(),
+          result: result.correct ? "correct" : "wrong",
+          comparison: result.correct ? undefined : result.comparison,
+        },
       ]);
       setGuess("");
       setSuggestions([]);
@@ -271,10 +311,31 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
             <ol aria-label="Your guesses" aria-live="polite" className="guess-list">
               {guesses.map((item, index) => (
                 <li className="guess-row" key={`${index}-${item.value}`}>
-                  <span className="guess-value">{item.value}</span>
-                  <span className={item.result === "correct" ? "guess-result is-correct" : "guess-result"}>
-                    {item.result === "correct" ? "Correct" : "Not quite"}
-                  </span>
+                  <div className="guess-row-heading">
+                    <span className="guess-value">{item.value}</span>
+                    <span className={item.result === "correct" ? "guess-result is-correct" : "guess-result"}>
+                      {item.result === "correct" ? "Correct" : "Not quite"}
+                    </span>
+                  </div>
+                  {item.result === "wrong" && item.comparison && (
+                    item.comparison.available && item.comparison.fields.length > 0 ? (
+                      <ul aria-label={`Clue comparison for ${item.value}`} className="comparison-grid">
+                        {item.comparison.fields.map((field) => (
+                          <li className={`comparison-field is-${field.result}`} key={field.label}>
+                            <span className="comparison-label">{field.label}</span>
+                            <span className="comparison-value">{field.guessValue}</span>
+                            <span className={`comparison-result is-${field.result}`}>
+                              {field.detail}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="comparison-note">
+                        Choose an approved title from suggestions to compare its clues.
+                      </p>
+                    )
+                  )}
                 </li>
               ))}
             </ol>
@@ -287,10 +348,10 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                 <div className="guess-input-wrap">
                   <Input
                     aria-activedescendant={
-                      activeSuggestion >= 0 ? `anime-suggestion-${activeSuggestion}` : undefined
+                      activeSuggestion >= 0 ? `${mediaName}-suggestion-${activeSuggestion}` : undefined
                     }
-                    aria-autocomplete={!isMovie ? "list" : undefined}
-                    aria-controls={!isMovie ? "anime-title-suggestions" : undefined}
+                    aria-autocomplete="list"
+                    aria-controls={`${mediaName}-title-suggestions`}
                     aria-expanded={suggestions.length > 0}
                     autoComplete="off"
                     className="guess-input"
@@ -312,7 +373,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                   {suggestions.length > 0 && (
                     <ul
                       className="suggestion-list"
-                      id="anime-title-suggestions"
+                      id={`${mediaName}-title-suggestions`}
                       role="listbox"
                     >
                       {suggestions.map((title, index) => (
@@ -323,7 +384,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                               ? "suggestion-option is-active"
                               : "suggestion-option"
                           }
-                          id={`anime-suggestion-${index}`}
+                          id={`${mediaName}-suggestion-${index}`}
                           key={title}
                           onMouseDown={(event) => event.preventDefault()}
                           onMouseEnter={() => setActiveSuggestion(index)}

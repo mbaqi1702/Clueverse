@@ -5,11 +5,11 @@ This roadmap makes database readiness and additional content sources explicit, s
 ## Current position
 
 - **UI foundation — complete:** PR #2 is merged. The daily puzzle has a responsive paper-and-ink design, accessible structure, and loading/retry states.
-- **Catalog foundation — 2,296 Tenrai anime rows:** Supabase counts checked 2026-10-12 found 2,296 anime, 2,272 approved, and 0 TMDB movies. Refresh these before import. Only records passing the documented provider-specific rules can be selected.
+- **Catalog foundation — 2,296 Tenrai anime rows:** Supabase counts checked 2026-10-12 found 2,296 anime and 2,272 approved. The latest movie catalog check on 2026-10-14 found 20 imported and approved TMDB movies. Only records passing the documented provider-specific rules can be selected.
 - **Database-backed gameplay — implemented:** PR #3 and persisted daily assignment are merged; the project owner reports applying the required migrations. Reconfirm the live project/environment before new writes or production changes.
-- **External sources — TMDB movie vertical implemented on feature branch:** A read-only count refresh on 2026-10-12 found 0 movie rows. The latest no-write preview returned 20 fetched, 20 usable, 0 rejected, and 0 written with strict adult-flag validation and current attribution text. The separate daily schedule/route, eligibility/clue policy, TMDB attribution, six-month cache expiry, and purge handling are implemented; open the PR and verify its Vercel preview before public enablement. Google Books remains field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent ingestion. See [the source evaluation](./docs/source-evaluation.md).
-- **Gameplay UI polish — current baseline:** PR #10's contrast/synopsis cleanup and PR #11's approved-anime title suggestions are merged. Keyboard-operable suggestions fill but do not submit a guess. Skip behavior remains a later follow-up.
-- **Catalog snapshot (2026-10-12):** 2,296 anime records, 2,272 approved, 0 TMDB movie records. Recheck before importing.
+- **External sources — TMDB movie vertical serving:** PR #13 and its Vercel preview checks passed. The owner cleared TMDB for the intended game use. On 2026-10-14, the movie-serving migration and purge protections were applied, a reviewed 20-record batch was approved, and production returned an answer-free movie puzzle with HTTP 200. The schedule now contains its daily assignment. Future imports still require a reviewed preview and explicit batch approval. Google Books remains field-scoped, Wikidata is secondary manga metadata, and AniList is excluded from persistent ingestion. See [the source evaluation](./docs/source-evaluation.md).
+- **Gameplay UI polish — in progress:** PR #10's contrast/synopsis cleanup and PR #11's approved-anime title suggestions are merged. The current feature extends suggestions to movies, adds safe field-by-field comparisons after wrong catalog-backed guesses, and simplifies the shared visual palette. It is local-only until validation and owner review. Skip behavior remains a later follow-up.
+- **Catalog snapshot (2026-10-14):** 2,296 anime records and 2,272 approved (anime last checked 2026-10-12); 20 TMDB movie records approved, with one persisted daily movie schedule.
 
 ## Milestone 1 — Merge safe database-backed puzzle serving
 
@@ -70,9 +70,13 @@ Acceptance criteria:
 
 ## Milestone 5 — Add additional media sources one at a time
 
-**Status: Implemented on feature branch — PR and Vercel preview pending**
+**Status: Serving in production — initial catalog activation complete**
 
-The bounded importer and service-role RPC are implemented. The latest no-write preview returned 20 fetched, 20 usable, 0 rejected, and 0 written with explicit `adult: false` validation. No TMDB rows have been imported or approved. The separate movie UI, API, schedule, fresh-source eligibility, provenance expiry, and purge procedures are implemented on the current branch. Open the PR and verify its Vercel preview; apply the new movie migration and approve reviewed movie records only after separate owner approval. Do not run another provider adapter first. See [the source evaluation](./docs/source-evaluation.md) and [the current handoff](./progress.md).
+The bounded importer, service-role RPC, and separate movie game were merged in PR #13; CI and Vercel preview checks passed. On 2026-10-14, the missing serving migration was applied and verified, the reviewed one-page import produced 20 eligible records, and all 20 were approved after the owner's approval. Production returned an answer-free puzzle with HTTP 200, and the daily schedule is persisted. Keep future imports gated on their own reviewed preview and explicit batch approval; review titles before approval and preserve TMDB attribution, expiry, and purge safeguards. See [the source evaluation](./docs/source-evaluation.md) and [the current handoff](./progress.md).
+
+### Gameplay feedback and autocomplete follow-up
+
+The in-progress UI feature provides keyboard-operable approved-title suggestions for anime and movies. For a wrong guess that uniquely matches a catalog title, the API compares only shared metadata: anime genre/year/format/episodes/studio/content rating and movie genre/year. Shared genres and studios can match; year and episode differences communicate direction without exposing the answer's exact values. Free-form, unknown, or ambiguous guesses remain valid but do not receive field comparisons. The shared UI uses a quiet neutral palette, a small transparent-backed TMDB mark, and a subtle green match treatment. This work is not deployed; validate it and obtain owner approval through a PR before merge/deployment.
 
 Acceptance criteria for each new source:
 
@@ -82,7 +86,7 @@ Acceptance criteria for each new source:
 - Duplicate/cross-provider matches are reviewed explicitly rather than automatically merged.
 - Import, mapping, validation, attribution, and failure behavior have focused tests.
 - Define eligibility independently for each provider; the player request path never calls the provider directly.
-- Before public TMDB display, apply the migration providing the required logo/notice, original-content six-month expiry, hourly expiry purge, and correction/removal/full-purge operations; verify Vercel preview behavior.
+- Before public TMDB display, verify the migration providing the required logo/notice, original-content six-month expiry, hourly expiry purge, and correction/removal/full-purge operations; verify Vercel behavior with an eligible approved movie.
 - Keep movie assignments and routes distinct from the anime daily game; never mix media types in the anime schedule.
 - Review the live dry-run mapping and rejection counts before any explicit, bounded `--apply` import.
 

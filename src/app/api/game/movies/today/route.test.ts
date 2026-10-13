@@ -2,10 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const supabaseMocks = vi.hoisted(() => ({
   getPuzzleForDate: vi.fn(),
+  getGuessClues: vi.fn(),
 }));
 
 vi.mock("@/lib/game/supabase-tmdb-movie-puzzle", () => ({
   getSupabaseTmdbMoviePuzzleForDate: supabaseMocks.getPuzzleForDate,
+}));
+vi.mock("@/lib/game/supabase-guess-clues", () => ({
+  getSupabaseGuessClues: supabaseMocks.getGuessClues,
 }));
 
 import { GET, POST } from "./route";
@@ -26,6 +30,10 @@ const moviePuzzle: DailyPuzzle = {
 beforeEach(() => {
   vi.stubEnv("GAME_DATA_SOURCE", "supabase");
   supabaseMocks.getPuzzleForDate.mockReset().mockResolvedValue(moviePuzzle);
+  supabaseMocks.getGuessClues.mockReset().mockResolvedValue([
+    { label: "Genre", value: "Horror" },
+    { label: "Release year", value: "2020" },
+  ]);
 });
 
 afterEach(() => {
@@ -52,8 +60,35 @@ describe("movie daily game API", () => {
       body: JSON.stringify({ guess: "not the answer", attemptNumber: 1 }),
     }));
     const data = await response.json();
-    expect(data).toMatchObject({ correct: false, completed: false, clue: moviePuzzle.clues[0] });
+    expect(data).toMatchObject({
+      correct: false,
+      completed: false,
+      clue: moviePuzzle.clues[0],
+      comparison: {
+        available: true,
+        fields: [
+          { label: "Genre", result: "different", detail: "No shared values" },
+          { label: "Release year", result: "answer-higher", detail: "Answer is newer" },
+        ],
+      },
+    });
     expect(data).not.toHaveProperty("answer");
+  });
+
+  it("returns an explicit retryable error when movie comparison lookup fails", async () => {
+    supabaseMocks.getGuessClues.mockRejectedValue(new Error("Database offline"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await POST(new Request("http://localhost/api/game/movies/today", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guess: "Known movie", attemptNumber: 1 }),
+    }));
+    const data = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(data).toEqual({ error: "Your guess could not be checked. Please try again." });
   });
 
   it("rejects attempt numbers beyond the movie-specific limit", async () => {
