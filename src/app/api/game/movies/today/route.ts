@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPublicPuzzle } from "@/lib/game/content";
-import { compareGuessClues, evaluateGuess } from "@/lib/game/guess";
+import { compareGuessClues, evaluateGuess, evaluateSkip } from "@/lib/game/guess";
 import { getSupabaseTmdbMoviePuzzleForDate } from "@/lib/game/supabase-tmdb-movie-puzzle";
 import { getSupabaseGuessClues } from "@/lib/game/supabase-guess-clues";
 import { TMDB_MOVIE_MAX_ATTEMPTS } from "@/lib/game/tmdb-movie-puzzle-mapper";
@@ -48,21 +48,30 @@ export async function POST(request: Request) {
   }
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return NextResponse.json({ error: "A guess and attempt number are required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "A guess or skip and an attempt number are required." },
+      { status: 400 },
+    );
   }
 
-  const { guess, attemptNumber } = body as { guess?: unknown; attemptNumber?: unknown };
+  const { guess, skip, attemptNumber } = body as {
+    guess?: unknown;
+    skip?: unknown;
+    attemptNumber?: unknown;
+  };
+  const isSkip = skip === true;
+  const guessText = typeof guess === "string" ? guess : "";
   if (
-    typeof guess !== "string" ||
+    (isSkip
+      ? guess !== undefined
+      : !guessText.trim() || guessText.length > 100) ||
     typeof attemptNumber !== "number" ||
-    guess.trim().length === 0 ||
-    guess.length > 100 ||
     !Number.isInteger(attemptNumber) ||
     attemptNumber < 1 ||
     attemptNumber > TMDB_MOVIE_MAX_ATTEMPTS
   ) {
     return NextResponse.json(
-      { error: "Enter a guess of 1–100 characters and a valid attempt number." },
+      { error: "Enter a guess or skip, with a valid attempt number." },
       { status: 400, headers: noStore },
     );
   }
@@ -72,15 +81,17 @@ export async function POST(request: Request) {
     const puzzle = await getMoviePuzzleForDate(date);
     if (attemptNumber > puzzle.maxAttempts) {
       return NextResponse.json(
-        { error: "Enter a guess of 1–100 characters and a valid attempt number." },
+        { error: "Enter a guess or skip, with a valid attempt number." },
         { status: 400, headers: noStore },
       );
     }
-    const result = evaluateGuess(guess, attemptNumber, puzzle);
-    if (!result.correct) {
+    const result = isSkip
+      ? evaluateSkip(attemptNumber, puzzle)
+      : evaluateGuess(guessText, attemptNumber, puzzle);
+    if (!isSkip && !result.correct) {
       let guessedClues: Awaited<ReturnType<typeof getSupabaseGuessClues>>;
       try {
-        guessedClues = await getSupabaseGuessClues(guess.trim(), puzzle.id, "movie");
+        guessedClues = await getSupabaseGuessClues(guessText.trim(), puzzle.id, "movie");
       } catch (error) {
         console.error("Could not compare the submitted movie guess.", error);
         return NextResponse.json(

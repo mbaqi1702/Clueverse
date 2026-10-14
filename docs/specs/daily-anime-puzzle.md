@@ -9,6 +9,7 @@ A visitor can open the daily puzzle, read its opening synopsis, submit an anime 
 - The initial puzzle response contains the synopsis and attempt limit, but not the answer, accepted guesses, or unrevealed clues.
 - Guesses are submitted to a server route, normalized for case, punctuation, whitespace, and diacritics, and checked against the answer and configured aliases.
 - An incorrect guess reveals one additional clue. A correct answer completes the round; the fifth incorrect guess ends it and reveals the answer.
+- A player can skip instead of entering a title; skipping consumes one attempt and reveals the next clue. Skipping the final attempt ends the round and reveals the answer.
 - In Supabase mode, a playable approved anime is randomly assigned and persisted per UTC date; every player receives the same title for that date.
 - Existing scheduled puzzles are preserved. New assignments prefer eligible titles not used on earlier dates.
 - Technically playable Tenrai imports become eligible automatically; other sources require their own eligibility policy.
@@ -17,6 +18,7 @@ A visitor can open the daily puzzle, read its opening synopsis, submit an anime 
 - The UI works at mobile and desktop widths, supports keyboard submission, reports loading/errors, and respects reduced-motion preferences.
 - In database mode, approved anime title suggestions are keyboard-operable, exclude the active answer, and selecting a suggestion does not submit a guess.
 - For a wrong guess that uniquely matches an approved catalog title, show comparisons only for shared anime fields. Genre/studio matches are explicit; year/episode hints reveal direction only, never the answer's exact values. Unknown or ambiguous titles remain valid guesses without field comparisons.
+- A skipped attempt is visibly recorded as “Skipped” and never triggers a guessed-title comparison.
 - Unit tests cover normalization, matching, clue progression, completion, attempt limits, and answer privacy.
 
 ## Data and scope

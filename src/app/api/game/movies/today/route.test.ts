@@ -75,6 +75,41 @@ describe("movie daily game API", () => {
     expect(data).not.toHaveProperty("answer");
   });
 
+  it("uses a skipped attempt to reveal the next movie clue without comparison lookup", async () => {
+    const response = await POST(new Request("http://localhost/api/game/movies/today", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skip: true, attemptNumber: 1 }),
+    }));
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toMatchObject({
+      correct: false,
+      completed: false,
+      skipped: true,
+      clue: moviePuzzle.clues[0],
+    });
+    expect(data).not.toHaveProperty("answer");
+    expect(supabaseMocks.getGuessClues).not.toHaveBeenCalled();
+  });
+
+  it("ends the movie game when its final attempt is skipped", async () => {
+    const response = await POST(new Request("http://localhost/api/game/movies/today", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skip: true, attemptNumber: moviePuzzle.maxAttempts }),
+    }));
+    const data = await response.json();
+
+    expect(data).toMatchObject({
+      correct: false,
+      completed: true,
+      skipped: true,
+      answer: moviePuzzle.answer,
+    });
+  });
+
   it("returns an explicit retryable error when movie comparison lookup fails", async () => {
     supabaseMocks.getGuessClues.mockRejectedValue(new Error("Database offline"));
     vi.spyOn(console, "error").mockImplementation(() => undefined);

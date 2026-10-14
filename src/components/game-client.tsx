@@ -11,7 +11,7 @@ type GameStatus = "playing" | "won" | "lost";
 
 type GuessRecord = {
   value: string;
-  result: "wrong" | "correct";
+  result: "wrong" | "correct" | "skipped";
   comparison?: GuessComparison;
 };
 
@@ -176,10 +176,11 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     }
   }
 
-  async function submitGuess(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!puzzle || !guess.trim() || submitting || status !== "playing") return;
-
+  async function submitAttempt(
+    action: { guess: string } | { skip: true },
+    displayValue: string,
+  ) {
+    if (!puzzle || submitting || status !== "playing") return;
     setSubmitting(true);
     setError("");
     try {
@@ -187,7 +188,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          guess: guess.trim(),
+          ...action,
           attemptNumber: guesses.length + 1,
         }),
       });
@@ -200,9 +201,9 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       setGuesses((previous) => [
         ...previous,
         {
-          value: guess.trim(),
-          result: result.correct ? "correct" : "wrong",
-          comparison: result.correct ? undefined : result.comparison,
+          value: displayValue,
+          result: result.correct ? "correct" : result.skipped ? "skipped" : "wrong",
+          comparison: result.correct || result.skipped ? undefined : result.comparison,
         },
       ]);
       setGuess("");
@@ -220,6 +221,17 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function submitGuess(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = guess.trim();
+    if (!title) return;
+    void submitAttempt({ guess: title }, title);
+  }
+
+  function skipAttempt() {
+    void submitAttempt({ skip: true }, "Skipped");
   }
 
   const attemptsLeft = puzzle ? puzzle.maxAttempts - guesses.length : 0;
@@ -248,7 +260,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         <section className="page-intro">
           <h1 id="page-title">Name the {mediaName}.</h1>
           <p className="intro-copy">
-            Read the synopsis. Each wrong guess reveals another clue.
+            Read the synopsis. Guess a title or skip to reveal another clue; skips use a guess.
           </p>
         </section>
 
@@ -312,9 +324,11 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
               {guesses.map((item, index) => (
                 <li className="guess-row" key={`${index}-${item.value}`}>
                   <div className="guess-row-heading">
-                    <span className="guess-value">{item.value}</span>
-                    <span className={item.result === "correct" ? "guess-result is-correct" : "guess-result"}>
-                      {item.result === "correct" ? "Correct" : "Not quite"}
+                    {item.result !== "skipped" && (
+                      <span className="guess-value">{item.value}</span>
+                    )}
+                    <span className={`guess-result${item.result === "correct" ? " is-correct" : item.result === "skipped" ? " is-skipped" : ""}`}>
+                      {item.result === "correct" ? "Correct" : item.result === "skipped" ? "Skipped" : "Not quite"}
                     </span>
                   </div>
                   {item.result === "wrong" && item.comparison && (
@@ -425,6 +439,14 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                   )}
                 </button>
               </div>
+              <button
+                className="skip-button"
+                disabled={loading || submitting || !puzzle}
+                onClick={skipAttempt}
+                type="button"
+              >
+                Skip and reveal next clue
+              </button>
               {suggestionError && <p className="suggestion-error" role="status">{suggestionError}</p>}
               {error && <p className="error-copy" role="alert">{error}</p>}
             </form>
@@ -441,8 +463,8 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
 
         <p className="play-note">
           {isMovie
-            ? "Three guesses. A wrong guess opens the next movie clue. Your round resets if you refresh."
-            : "Five guesses. Each miss opens a new clue. Your round resets if you refresh."}
+            ? "Three attempts. Wrong guesses and skips reveal clues. Your round resets if you refresh."
+            : "Five attempts. Wrong guesses and skips reveal clues. Your round resets if you refresh."}
         </p>
       </main>
 

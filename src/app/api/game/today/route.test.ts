@@ -55,6 +55,8 @@ describe("today's game API", () => {
     { guess: "guess", attemptNumber: 6 },
     { guess: "x".repeat(101), attemptNumber: 1 },
     { guess: "guess", attemptNumber: "1" },
+    { guess: "guess", skip: true, attemptNumber: 1 },
+    { skip: true, attemptNumber: "1" },
   ])("rejects invalid guess payloads", async (body) => {
     const response = await POST(
       new Request("http://localhost/api/game/today", {
@@ -81,6 +83,48 @@ describe("today's game API", () => {
     expect(data).toMatchObject({ correct: false, completed: false });
     expect(data.clue).toHaveProperty("label");
     expect(data).not.toHaveProperty("answer");
+  });
+
+  it("uses a skipped attempt to reveal the next clue without comparing a guessed title", async () => {
+    vi.stubEnv("GAME_DATA_SOURCE", "supabase");
+    supabaseMocks.getPuzzleForDate.mockResolvedValue(dailyPuzzle);
+
+    const response = await POST(
+      new Request("http://localhost/api/game/today", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skip: true, attemptNumber: 1 }),
+      }),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toMatchObject({
+      correct: false,
+      completed: false,
+      skipped: true,
+      clue: dailyPuzzle.clues[0],
+    });
+    expect(data).not.toHaveProperty("answer");
+    expect(supabaseMocks.getGuessClues).not.toHaveBeenCalled();
+  });
+
+  it("ends the game when its final attempt is skipped", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/game/today", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skip: true, attemptNumber: dailyPuzzle.maxAttempts }),
+      }),
+    );
+    const data = await response.json();
+
+    expect(data).toMatchObject({
+      correct: false,
+      completed: true,
+      skipped: true,
+      answer: dailyPuzzle.answer,
+    });
   });
 
   it("does not fall back to the sample when Supabase has no scheduled puzzle", async () => {

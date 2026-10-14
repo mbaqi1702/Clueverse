@@ -13,6 +13,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 - PR #11 added database-backed approved-anime title suggestions with keyboard selection. Suggestions do not include today's scheduled answer, and choosing one fills the guess field without submitting it.
 - PR #14 extended approved-title suggestions to movies, added safe field-by-field wrong-guess comparisons for both games, and simplified the shared UI palette. Anime compares its available genre, year, format, episode, studio, and content-rating fields; movies compare genre and year only. It deliberately does not add a director comparison because director is not in the movie clue model.
 - PR #14 is merged and its Vercel production deployment is Ready. A live smoke check on `https://clueverse-phi.vercel.app` returned answer-free puzzle payloads and confirmed suggestions plus available comparisons for both verticals.
+- The next gameplay increment, now in progress on `feat/skip-reveal-attempt`, adds an accessible skip action for both verticals. It consumes one attempt, reveals the next clue, and a final skip ends the round and reveals the answer; validation and PR review are still pending.
 - **Production domain check needed:** `https://clueverse.vercel.app` currently serves a different Vite single-page app (HTML shell) instead of this Next.js game. The current Vercel production deployment advertises `clueverse-phi.vercel.app`, `clueverse-mbaqi1702.vercel.app`, and `clueverse-git-main-mbaqi1702.vercel.app`. Confirm the intended public URL and domain assignment in Vercel before sharing or changing aliases; no alias change has been made.
 - PR #7 remains open with conflicts and outdated launch documentation; do not merge it as-is. Use this handoff and the current source documents instead.
 - Answers and unrevealed clues stay server-side; wrong guesses reveal clues and rounds end after five attempts.
@@ -38,7 +39,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 2. **Run a player acceptance pass on the confirmed public URL:** check the suggestions and comparison experience on a real mobile device, keyboard-only navigation, screen-reader labels, and the TMDB attribution/footer. Collect player feedback before adding more features.
 3. **Improve catalog depth deliberately:** the last verified movie catalog has 20 approved titles. Review a fresh no-write TMDB import preview and obtain explicit approval for a specific batch before any writes or title approvals. Do not start the next import automatically.
 4. **Operate the live catalog:** monitor scheduled puzzle availability, comparison/suggestion errors, and TMDB expiry/purge behavior; refresh the anime catalog counts before relying on the older snapshot.
-5. **Defer larger product features until anonymous play is validated:** consider a skip action and shareable result first; keep accounts, persistent streaks, and leaderboards as separate decisions. Keep movies/books/manga as separate daily games and do not persist AniList data.
+5. **After skip ships, defer larger product features until anonymous play is validated:** consider a shareable result next; keep accounts, persistent streaks, and leaderboards as separate decisions. Keep movies/books/manga as separate daily games and do not persist AniList data.
 
 ## Copyable handoff prompt for a new chat
 

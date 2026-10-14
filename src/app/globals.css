@@ -393,6 +393,11 @@ button:disabled {
   color: var(--success);
 }
 
+.guess-result.is-skipped {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .guess-form {
   padding-top: 1.5rem;
   border-top: 1px solid var(--line);
@@ -493,6 +498,25 @@ button:disabled {
 .guess-submit:disabled {
   border-color: #e4e7ec;
   background: #f2f4f7;
+  color: #98a2b3;
+}
+
+.skip-button {
+  margin-top: 0.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.skip-button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.skip-button:disabled {
   color: #98a2b3;
 }
 
