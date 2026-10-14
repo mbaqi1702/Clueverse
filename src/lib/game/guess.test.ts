@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dailyPuzzle, getPublicPuzzle } from "./content";
-import { compareGuessClues, evaluateGuess, normalizeGuess } from "./guess";
+import { compareGuessClues, evaluateGuess, evaluateSkip, normalizeGuess } from "./guess";
 
 describe("normalizeGuess", () => {
   it("ignores punctuation, spacing, and letter case", () => {
@@ -9,6 +9,31 @@ describe("normalizeGuess", () => {
 
   it("normalizes accented characters", () => {
     expect(normalizeGuess("Été")).toBe("ete");
+  });
+});
+
+describe("evaluateSkip", () => {
+  it("uses the attempt to reveal the next clue without checking a title", () => {
+    expect(evaluateSkip(1)).toEqual({
+      correct: false,
+      completed: false,
+      skipped: true,
+      clue: dailyPuzzle.clues[0],
+    });
+  });
+
+  it("ends the round and reveals the answer when the final attempt is skipped", () => {
+    expect(evaluateSkip(dailyPuzzle.maxAttempts)).toEqual({
+      correct: false,
+      completed: true,
+      skipped: true,
+      answer: dailyPuzzle.answer,
+    });
+  });
+
+  it("rejects attempt numbers outside the puzzle limits", () => {
+    expect(() => evaluateSkip(0)).toThrow(RangeError);
+    expect(() => evaluateSkip(dailyPuzzle.maxAttempts + 1)).toThrow(RangeError);
   });
 });
 

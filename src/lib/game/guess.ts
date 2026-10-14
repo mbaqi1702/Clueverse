@@ -5,6 +5,7 @@ export type GuessResult =
   | {
       correct: false;
       completed: boolean;
+      skipped?: boolean;
       clue?: Clue;
       answer?: string;
       comparison?: GuessComparison;
@@ -36,9 +37,7 @@ export function evaluateGuess(
   puzzle: DailyPuzzle = dailyPuzzle,
   guessedClues?: Clue[],
 ): GuessResult {
-  if (!Number.isInteger(attemptNumber) || attemptNumber < 1 || attemptNumber > puzzle.maxAttempts) {
-    throw new RangeError("Attempt number is outside the allowed range.");
-  }
+  assertValidAttempt(attemptNumber, puzzle);
 
   const normalizedGuess = normalizeGuess(guess);
   const accepted = [puzzle.answer, ...puzzle.acceptedGuesses].some(
@@ -56,6 +55,21 @@ export function evaluateGuess(
     ...(guessedClues
       ? { comparison: compareGuessClues(puzzle.clues, guessedClues) }
       : {}),
+    ...(completed ? { answer: puzzle.answer } : { clue: puzzle.clues[attemptNumber - 1] }),
+  };
+}
+
+export function evaluateSkip(
+  attemptNumber: number,
+  puzzle: DailyPuzzle = dailyPuzzle,
+): GuessResult {
+  assertValidAttempt(attemptNumber, puzzle);
+
+  const completed = attemptNumber === puzzle.maxAttempts;
+  return {
+    correct: false,
+    completed,
+    skipped: true,
     ...(completed ? { answer: puzzle.answer } : { clue: puzzle.clues[attemptNumber - 1] }),
   };
 }
@@ -121,4 +135,10 @@ export function compareGuessClues(
 
 function splitAttributeValues(value: string): string[] {
   return value.split(/\s*·\s*/).map((part) => part.trim()).filter(Boolean);
+}
+
+function assertValidAttempt(attemptNumber: number, puzzle: DailyPuzzle): void {
+  if (!Number.isInteger(attemptNumber) || attemptNumber < 1 || attemptNumber > puzzle.maxAttempts) {
+    throw new RangeError("Attempt number is outside the allowed range.");
+  }
 }
