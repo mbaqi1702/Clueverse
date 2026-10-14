@@ -15,10 +15,12 @@ A visitor can open the daily puzzle, read its opening synopsis, submit an anime 
 - Explicit Rx/Hentai-rated titles are excluded from public daily assignment.
 - Invalid JSON, empty or oversized guesses, and out-of-range attempt numbers receive a 400 response.
 - The UI works at mobile and desktop widths, supports keyboard submission, reports loading/errors, and respects reduced-motion preferences.
+- In database mode, approved anime title suggestions are keyboard-operable, exclude the active answer, and selecting a suggestion does not submit a guess.
+- For a wrong guess that uniquely matches an approved catalog title, show comparisons only for shared anime fields. Genre/studio matches are explicit; year/episode hints reveal direction only, never the answer's exact values. Unknown or ambiguous titles remain valid guesses without field comparisons.
 - Unit tests cover normalization, matching, clue progression, completion, attempt limits, and answer privacy.
 
 ## Data and scope
 
-Sample mode uses one original, fictional puzzle held server-side. Supabase mode serves the catalog through a server-only database connection. Tenrai records become eligible automatically only if their synopsis and clue data meet the playability rules and their rating is not Rx/Hentai; incomplete or explicitly adult-rated records are excluded from daily selection. User progress is in client memory only and can reset on refresh. Images are not imported.
+Sample mode uses one original, fictional puzzle held server-side. Supabase mode serves the catalog through a server-only database connection. Tenrai records become eligible automatically only if their synopsis and clue data meet the playability rules and their rating is not Rx/Hentai; incomplete or explicitly adult-rated records are excluded from daily selection. Anime comparisons use only fields available on both titles; movies have a separate daily-game specification and currently compare genre and release year only. User progress is in client memory only and can reset on refresh. Images are not imported.
 
 Out of scope: accounts, durable attempts, leaderboards, automatic provider ingestion schedules, media images, analytics, and additional game modes. Additional media sources are planned separately; each needs its own terms, attribution, adapter, and eligibility review. See [the data pipeline guide](../data-pipeline.md).
