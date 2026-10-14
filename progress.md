@@ -8,12 +8,12 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 ## Current repository state
 
-- PRs #3, #5, #10, #11, #12, #13, and #14 are merged.
+- PRs #3, #5, #10, #11, #12, #13, #14, #15, and #16 are merged.
 - PR #10 improved background/input contrast and removes the trailing MAL Rewrite editor suffix from public synopsis text.
 - PR #11 added database-backed approved-anime title suggestions with keyboard selection. Suggestions do not include today's scheduled answer, and choosing one fills the guess field without submitting it.
 - PR #14 extended approved-title suggestions to movies, added safe field-by-field wrong-guess comparisons for both games, and simplified the shared UI palette. Anime compares its available genre, year, format, episode, studio, and content-rating fields; movies compare genre and year only. It deliberately does not add a director comparison because director is not in the movie clue model.
 - PR #14 is merged and its Vercel production deployment is Ready. A live smoke check on `https://clueverse-phi.vercel.app` returned answer-free puzzle payloads and confirmed suggestions plus available comparisons for both verticals.
-- The next gameplay increment, now in progress on `feat/skip-reveal-attempt`, adds an accessible skip action for both verticals. It consumes one attempt, reveals the next clue, and a final skip ends the round and reveals the answer; validation and PR review are still pending.
+- PR #16 added an accessible skip action for both verticals. It consumes one attempt, reveals the next clue, and a final skip ends the round and reveals the answer. CI and Vercel checks passed; it is merged.
 - **Production domain check needed:** `https://clueverse.vercel.app` currently serves a different Vite single-page app (HTML shell) instead of this Next.js game. The current Vercel production deployment advertises `clueverse-phi.vercel.app`, `clueverse-mbaqi1702.vercel.app`, and `clueverse-git-main-mbaqi1702.vercel.app`. Confirm the intended public URL and domain assignment in Vercel before sharing or changing aliases; no alias change has been made.
 - PR #7 remains open with conflicts and outdated launch documentation; do not merge it as-is. Use this handoff and the current source documents instead.
 - Answers and unrevealed clues stay server-side; wrong guesses reveal clues and rounds end after five attempts.
@@ -31,26 +31,26 @@ Build a polished daily media mystery game: players identify a title from a synop
 - Movie requests require `GAME_DATA_SOURCE=supabase` and server-only Supabase credentials in the target Vercel environment. Empty or unapproved catalog data returns 503; the client now distinguishes that server response from an actual network connection failure.
 - Fullmetal Alchemist: Brotherhood (Tenrai/MAL ID `5114`) was verified scheduled for `2026-10-08`; check live assignments before relying on historical schedule details.
 - The owner chose separate daily games per media vertical. Keep movies, books, and manga out of the anime daily puzzle.
-- Google Books is a field-scoped candidate; Wikidata is a secondary manga metadata source; AniList is excluded from persistent ingestion under the screened terms.
+- Google Books remains a field-scoped candidate; the first bounded, no-write metadata request returned HTTP 429, no records were saved, and there is no locally configured `GOOGLE_BOOKS_API_KEY`. See [the Books pilot notes](./docs/google-books-pilot.md). Wikidata is a secondary manga metadata source; AniList is excluded from persistent ingestion under the screened terms.
 
 ## Immediate next steps
 
 1. **Resolve the public-domain mismatch:** decide whether `clueverse.vercel.app` should point at this app or whether `clueverse-phi.vercel.app` is the intended public URL. Make any Vercel alias/DNS change only after confirming ownership and the desired canonical domain; recheck `/`, `/movies`, and both APIs afterward.
-2. **Run a player acceptance pass on the confirmed public URL:** check the suggestions and comparison experience on a real mobile device, keyboard-only navigation, screen-reader labels, and the TMDB attribution/footer. Collect player feedback before adding more features.
-3. **Improve catalog depth deliberately:** the last verified movie catalog has 20 approved titles. Review a fresh no-write TMDB import preview and obtain explicit approval for a specific batch before any writes or title approvals. Do not start the next import automatically.
-4. **Operate the live catalog:** monitor scheduled puzzle availability, comparison/suggestion errors, and TMDB expiry/purge behavior; refresh the anime catalog counts before relying on the older snapshot.
-5. **After skip ships, defer larger product features until anonymous play is validated:** consider a shareable result next; keep accounts, persistent streaks, and leaderboards as separate decisions. Keep movies/books/manga as separate daily games and do not persist AniList data.
+2. **Books pilot:** inspect the Google Cloud API quota and configure a Books-API-restricted key locally (never share it in chat); then repeat one five-record, no-write metadata sample. Stop on another 429. Do not write records or create a Books game until field rights, sample quality, and editions are reviewed. See [the pilot notes](./docs/google-books-pilot.md).
+3. **Run a player acceptance pass on the confirmed public URL:** check the suggestions, comparisons, and skip action on a real mobile device, keyboard-only navigation, screen-reader labels, and the TMDB attribution/footer. Collect player feedback before adding more features.
+4. **Improve catalog depth deliberately:** the last verified movie catalog has 20 approved titles. Review a fresh no-write TMDB import preview and obtain explicit approval for a specific batch before any writes or title approvals. Do not start the next import automatically.
+5. **Operate the live catalog:** monitor scheduled puzzle availability, comparison/suggestion errors, and TMDB expiry/purge behavior; refresh the anime catalog counts before relying on the older snapshot. Keep accounts, persistent streaks, and leaderboards deferred until anonymous play is validated; keep each media type in a separate daily game and do not persist AniList data.
 
 ## Copyable handoff prompt for a new chat
 
 ```text
-Continue ClueVerse from the latest origin/main. PR #14 (movie suggestions, field comparisons, and a refined shared UI), PR #13 (separate TMDB movie daily game), PR #11 (approved-anime title suggestions), and PR #10 (contrast/synopsis cleanup) are merged. The owner decided that movies, books, and manga should have separate daily games, not be mixed into the anime puzzle, and cleared TMDB for the intended non-AI-powered game use.
+Continue ClueVerse from the latest origin/main. PR #16 (skip-to-reveal), PR #14 (movie suggestions, field comparisons, and a refined shared UI), PR #13 (separate TMDB movie daily game), PR #11 (approved-anime title suggestions), and PR #10 (contrast/synopsis cleanup) are merged. The owner decided that movies, books, and manga should have separate daily games, not be mixed into the anime puzzle, and cleared TMDB for the intended non-AI-powered game use.
 
-The movie vertical is merged; CI and Vercel deployments passed. On 2026-10-14, the missing movie-serving migration was applied and verified, a reviewed one-page TMDB batch was imported and approved (20 eligible movies), and both production APIs were verified serving answer-free puzzles with working suggestions and wrong-guess comparisons. One daily movie assignment is persisted.
+The movie vertical is merged; CI and Vercel deployments passed. On 2026-10-14, the missing movie-serving migration was applied and verified, a reviewed one-page TMDB batch was imported and approved (20 eligible movies), and both production APIs were verified serving answer-free puzzles with working suggestions and wrong-guess comparisons. PR #16 then added skip-to-reveal in both games. One daily movie assignment is persisted.
 
 The latest Vercel production deployment is live at `https://clueverse-phi.vercel.app` (also aliased to `clueverse-mbaqi1702.vercel.app` and `clueverse-git-main-mbaqi1702.vercel.app`). Warning: `https://clueverse.vercel.app` currently serves a different Vite app, so confirm and fix the intended public-domain mapping before sharing that URL. Do not change Vercel aliases or DNS without confirming the desired canonical domain.
 
-Keep anime and movie behavior separate. Production movie serving is operational. For any future import, review the no-write preview and obtain separate explicit batch approval before using `--apply`; manually review titles before approving. Never ask me to paste secrets into chat.
+Keep anime and movie behavior separate. Production movie serving is operational. The first Google Books no-write metadata query (five-result cap; title/author/date/category/language/link fields only) returned HTTP 429; no data was retained and no Books integration exists. Follow [the pilot notes](./docs/google-books-pilot.md): check API quota, configure a restricted API key locally, and retry at most once before reviewing fields/rights. For any TMDB import, review the no-write preview and obtain separate explicit batch approval before using `--apply`; manually review titles before approving. Never ask me to paste secrets into chat.
 
 Preserve required TMDB logo/notice, six-month cache expiry, correction/removal, and purge safeguards; don't use TMDB content in connection with AI features. Commercial use requires a separate written agreement. Next, resolve the public domain, complete a real-device/player acceptance check, then review (but do not apply) a fresh TMDB import preview before separately approving any batch.
 
