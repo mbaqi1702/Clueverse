@@ -34,6 +34,21 @@ export const dailyPuzzle: DailyPuzzle = {
   maxAttempts: 5,
 };
 
+export const dailyBookPuzzle: DailyPuzzle = {
+  id: "sample-book-001",
+  answer: "The Atlas of Borrowed Hours",
+  acceptedGuesses: ["atlas of borrowed hours"],
+  synopsis:
+    "At a small coastal archive, apprentice mapmaker Elian Vale discovers that a missing atlas charts places which appear for only one hour each year. When a familiar island vanishes from every official map, Elian follows the atlas from a candlelit observatory to a town that remembers a different past. Each new chart offers a route home, but costs its maker one cherished memory.",
+  clues: [
+    { label: "Genre", value: "Fantasy · Mystery" },
+    { label: "Publication year", value: "2021" },
+    { label: "Author", value: "Nadia Sorel" },
+    { label: "Setting", value: "A coastal archive" },
+  ],
+  maxAttempts: 5,
+};
+
 export function getPublicPuzzle(
   puzzle: DailyPuzzle,
   date = new Date().toISOString().slice(0, 10),

@@ -116,6 +116,18 @@ describe("evaluateGuess", () => {
         detail: "Answer has fewer episodes",
       });
     });
+
+    it("compares book publication years directionally", () => {
+      const result = compareGuessClues(
+        [{ label: "Publication year", value: "1818" }],
+        [{ label: "Publication year", value: "1900" }],
+      );
+
+      expect(result.fields[0]).toMatchObject({
+        result: "answer-lower",
+        detail: "Answer is earlier",
+      });
+    });
   });
 
   it("ends after the final attempt and reveals the answer", () => {

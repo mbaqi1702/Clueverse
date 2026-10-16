@@ -4,6 +4,7 @@ import { GET } from "./route";
 const suggestionsMocks = vi.hoisted(() => ({
   getAnimeTitleSuggestions: vi.fn(),
   getMovieTitleSuggestions: vi.fn(),
+  getBookTitleSuggestions: vi.fn(),
 }));
 
 vi.mock("@/lib/game/anime-title-suggestions", () => ({
@@ -12,11 +13,15 @@ vi.mock("@/lib/game/anime-title-suggestions", () => ({
 vi.mock("@/lib/game/tmdb-title-suggestions", () => ({
   getTmdbMovieTitleSuggestions: suggestionsMocks.getMovieTitleSuggestions,
 }));
+vi.mock("@/lib/game/wikidata-book-title-suggestions", () => ({
+  getWikidataBookTitleSuggestions: suggestionsMocks.getBookTitleSuggestions,
+}));
 
 beforeEach(() => {
   vi.stubEnv("GAME_DATA_SOURCE", "supabase");
   suggestionsMocks.getAnimeTitleSuggestions.mockReset();
   suggestionsMocks.getMovieTitleSuggestions.mockReset();
+  suggestionsMocks.getBookTitleSuggestions.mockReset();
 });
 
 afterEach(() => {
@@ -54,6 +59,23 @@ describe("anime title suggestions API", () => {
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     );
     expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+  });
+
+  it("returns book suggestions from the approved novel catalog", async () => {
+    suggestionsMocks.getBookTitleSuggestions.mockResolvedValue(["Reviewed novel"]);
+
+    const response = await GET(
+      new Request("http://localhost/api/game/suggestions?vertical=book&q=rev"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ suggestions: ["Reviewed novel"] });
+    expect(suggestionsMocks.getBookTitleSuggestions).toHaveBeenCalledWith(
+      "rev",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    );
+    expect(suggestionsMocks.getAnimeTitleSuggestions).not.toHaveBeenCalled();
+    expect(suggestionsMocks.getMovieTitleSuggestions).not.toHaveBeenCalled();
   });
 
   it("rejects an unsupported vertical", async () => {

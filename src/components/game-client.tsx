@@ -17,7 +17,7 @@ type GuessRecord = {
 };
 
 type GameClientProps = {
-  vertical?: "anime" | "movie";
+  vertical?: "anime" | "movie" | "book";
 };
 
 function isPublicPuzzle(value: unknown): value is PublicPuzzle {
@@ -38,9 +38,15 @@ function isPublicPuzzle(value: unknown): value is PublicPuzzle {
 
 export function GameClient({ vertical = "anime" }: GameClientProps) {
   const isMovie = vertical === "movie";
-  const mediaName = isMovie ? "movie" : "anime";
-  const titleName = isMovie ? "Movie title" : "Anime title";
-  const todayEndpoint = isMovie ? "/api/game/movies/today" : "/api/game/today";
+  const isBook = vertical === "book";
+  const isAnime = vertical === "anime";
+  const mediaName = isMovie ? "movie" : isBook ? "book" : "anime";
+  const titleName = isMovie ? "Movie title" : isBook ? "Book title" : "Anime title";
+  const todayEndpoint = isMovie
+    ? "/api/game/movies/today"
+    : isBook
+      ? "/api/game/books/today"
+      : "/api/game/today";
 
   const [puzzle, setPuzzle] = useState<PublicPuzzle | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -282,11 +288,14 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
             ClueVerse
           </Link>
           <nav aria-label="Daily games" className="edition-nav">
-            <Link aria-current={!isMovie ? "page" : undefined} className="edition-link" href="/">
+            <Link aria-current={isAnime ? "page" : undefined} className="edition-link" href="/">
               Anime
             </Link>
             <Link aria-current={isMovie ? "page" : undefined} className="edition-link" href="/movies">
               Movies
+            </Link>
+            <Link aria-current={isBook ? "page" : undefined} className="edition-link" href="/books">
+              Books
             </Link>
           </nav>
         </div>
@@ -502,9 +511,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         </section>
 
         <p className="play-note">
-          {isMovie
-            ? "Three attempts. Wrong guesses and skips reveal clues. Your round resets if you refresh."
-            : "Five attempts. Wrong guesses and skips reveal clues. Your round resets if you refresh."}
+            {maxAttempts} attempts. Wrong guesses and skips reveal clues. Your round resets if you refresh.
         </p>
       </main>
 
@@ -529,7 +536,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
               </span>
             </div>
           ) : (
-            <span>Daily anime puzzle</span>
+            <span>Daily {isBook ? "book" : "anime"} puzzle</span>
           )}
         </div>
       </footer>

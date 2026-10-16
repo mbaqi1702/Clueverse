@@ -103,4 +103,27 @@ describe("getSupabaseGuessClues", () => {
     ]);
     expect(query.eq).not.toHaveBeenCalledWith("media_sources.provider", "tmdb");
   });
+
+  it("compares only approved, complete Wikidata novel clue records", async () => {
+    supabaseMocks.queryResult.mockReturnValue({
+      data: [{
+        id: "guessed-book-id",
+        title: "Known novel",
+        media_genres: [{ genres: { name: "Mystery" } }],
+        media_book_details: { first_publication_year: 1900 },
+        media_book_authors: [{ book_authors: { name: "A. Writer" } }],
+        media_sources: [{ provider: "wikidata" }],
+      }],
+      error: null,
+    });
+
+    await expect(getSupabaseGuessClues("Known novel", "answer-id", "book")).resolves.toEqual([
+      { label: "Genre", value: "Mystery" },
+      { label: "Publication year", value: "1900" },
+      { label: "Author", value: "A. Writer" },
+    ]);
+
+    expect(query.eq).toHaveBeenCalledWith("format", "novel");
+    expect(query.eq).toHaveBeenCalledWith("media_sources.provider", "wikidata");
+  });
 });

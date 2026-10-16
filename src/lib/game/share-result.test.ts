@@ -29,4 +29,16 @@ describe("formatShareResult", () => {
       "ClueVerse - Movies - 2026-10-16\nNot solved in 3/3 attempts\nResults: Miss, Miss, Skipped",
     );
   });
+
+  it("formats an answer-free book result", () => {
+    expect(
+      formatShareResult({
+        vertical: "book",
+        date: "2026-10-16",
+        status: "won",
+        attempts: ["wrong", "correct"],
+        maxAttempts: 5,
+      }),
+    ).toBe("ClueVerse - Books - 2026-10-16\nSolved in 2/5 attempts\nResults: Miss, Correct");
+  });
 });
