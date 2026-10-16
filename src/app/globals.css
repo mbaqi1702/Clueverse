@@ -559,6 +559,17 @@ button:disabled {
   font-weight: 700;
 }
 
+.share-button {
+  display: block;
+  margin-top: 1rem;
+}
+
+.share-message {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
 .play-note {
   max-width: 47rem;
   margin: 1rem 0 0;
