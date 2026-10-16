@@ -2,7 +2,7 @@
 
 ## Status — 2026-10-16
 
-No Google Books records were saved, and no Books game or schedule has been built. A separate Wikidata novel metadata importer and staging migration are implemented on a feature branch but have not been merged, applied, or used for catalog writes.
+No Google Books records were saved. A separate Wikidata novel metadata importer and staging migration are implemented on a feature branch but have not been merged, applied, or used for catalog writes. A `/books` game path is implemented with a fictional sample puzzle; there is no database-backed book schedule yet.
 
 A bounded public-volume search for `subject:science_fiction` was attempted twice, with `maxResults=5`, `projection=lite`, and a response field mask limited to volume ID, title, authors, publication date, categories, language, and info link. Both attempts returned HTTP 429. No response records were retained. A Google Books API key was not found in the local `.env.local` under `GOOGLE_BOOKS_API_KEY`; the key's presence/value was not otherwise inspected.
 

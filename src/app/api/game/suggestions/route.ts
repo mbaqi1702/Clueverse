@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAnimeTitleSuggestions } from "@/lib/game/anime-title-suggestions";
+import { getWikidataBookTitleSuggestions } from "@/lib/game/wikidata-book-title-suggestions";
 import { getTmdbMovieTitleSuggestions } from "@/lib/game/tmdb-title-suggestions";
 
 const noStore = { "Cache-Control": "no-store" };
@@ -8,7 +9,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const query = params.get("q")?.trim() ?? "";
   const vertical = params.get("vertical") ?? "anime";
-  if (vertical !== "anime" && vertical !== "movie") {
+  if (vertical !== "anime" && vertical !== "movie" && vertical !== "book") {
     return NextResponse.json(
       { error: "Choose a valid game for title suggestions." },
       { status: 400, headers: noStore },
@@ -43,7 +44,9 @@ export async function GET(request: Request) {
     const suggestions =
       vertical === "movie"
         ? await getTmdbMovieTitleSuggestions(query, puzzleDate)
-        : await getAnimeTitleSuggestions(query, puzzleDate);
+        : vertical === "book"
+          ? await getWikidataBookTitleSuggestions(query, puzzleDate)
+          : await getAnimeTitleSuggestions(query, puzzleDate);
     return NextResponse.json({ suggestions }, { headers: noStore });
   } catch (error) {
     console.error("Could not retrieve title suggestions.", error);

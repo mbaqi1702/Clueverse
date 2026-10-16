@@ -1,7 +1,7 @@
 export type ShareAttemptResult = "wrong" | "correct" | "skipped";
 
 export type ShareResultInput = {
-  vertical: "anime" | "movie";
+  vertical: "anime" | "movie" | "book";
   date: string;
   status: "won" | "lost";
   attempts: ShareAttemptResult[];
@@ -15,7 +15,7 @@ export function formatShareResult({
   attempts,
   maxAttempts,
 }: ShareResultInput): string {
-  const mediaName = vertical === "movie" ? "Movies" : "Anime";
+  const mediaName = vertical === "movie" ? "Movies" : vertical === "book" ? "Books" : "Anime";
   const outcome = status === "won" ? "Solved" : "Not solved";
   const attemptResults = attempts
     .map((attempt) => {

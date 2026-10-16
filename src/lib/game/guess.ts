@@ -102,7 +102,7 @@ export function compareGuessClues(
       }];
     }
 
-    if (label === "Release year" || label === "Episodes") {
+    if (label === "Release year" || label === "Publication year" || label === "Episodes") {
       const answerNumber = Number(answerValue);
       const guessNumber = Number(guessValue);
       if (Number.isFinite(answerNumber) && Number.isFinite(guessNumber)) {
@@ -110,12 +110,15 @@ export function compareGuessClues(
           return [{ label, guessValue, result: "match", detail: "Exact match" }];
         }
         const answerHigher = answerNumber > guessNumber;
+        const yearDirection = label === "Publication year"
+          ? answerHigher ? "later" : "earlier"
+          : answerHigher ? "newer" : "older";
         return [{
           label,
           guessValue,
           result: answerHigher ? "answer-higher" : "answer-lower",
-          detail: label === "Release year"
-            ? answerHigher ? "Answer is newer" : "Answer is older"
+          detail: label === "Release year" || label === "Publication year"
+            ? `Answer is ${yearDirection}`
             : answerHigher ? "Answer has more episodes" : "Answer has fewer episodes",
         }];
       }

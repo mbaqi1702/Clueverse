@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Clue } from "./content";
 
-type MediaType = "anime" | "movie";
+type MediaType = "anime" | "movie" | "book";
 type JsonRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -31,6 +31,23 @@ function mapGuessClues(media: JsonRecord, mediaType: MediaType): Clue[] {
   const clues: Clue[] = [];
   const genres = [...new Set(relationNames(media.media_genres, "genres"))];
   if (genres.length) clues.push({ label: "Genre", value: genres.join(" · ") });
+
+  if (mediaType === "book") {
+    const details = isRecord(media.media_book_details) ? media.media_book_details : null;
+    if (
+      details &&
+      typeof details.first_publication_year === "number" &&
+      Number.isInteger(details.first_publication_year)
+    ) {
+      clues.push({
+        label: "Publication year",
+        value: String(details.first_publication_year),
+      });
+    }
+    const authors = [...new Set(relationNames(media.media_book_authors, "book_authors"))];
+    if (authors.length) clues.push({ label: "Author", value: authors.join(" · ") });
+    return clues;
+  }
 
   if (typeof media.release_year === "number" && Number.isInteger(media.release_year)) {
     clues.push({ label: "Release year", value: String(media.release_year) });
@@ -72,17 +89,26 @@ export async function getSupabaseGuessClues(
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const selection = [
-    "id",
-    "title",
-    "release_year",
-    ...(mediaType === "anime" ? ["episode_count", "format", "content_rating"] : []),
-    "media_genres(genres(name))",
-    ...(mediaType === "anime" ? ["media_studios(studios(name))"] : []),
-    ...(mediaType === "movie"
-      ? ["media_sources!inner(provider, tmdb_content_expires_at)"]
-      : []),
-  ].join(",");
+  const selection = mediaType === "book"
+    ? [
+        "id",
+        "title",
+        "media_genres!inner(genres(name))",
+        "media_book_details!inner(first_publication_year)",
+        "media_book_authors!inner(book_authors(name))",
+        "media_sources!inner(provider)",
+      ].join(",")
+    : [
+        "id",
+        "title",
+        "release_year",
+        ...(mediaType === "anime" ? ["episode_count", "format", "content_rating"] : []),
+        "media_genres(genres(name))",
+        ...(mediaType === "anime" ? ["media_studios(studios(name))"] : []),
+        ...(mediaType === "movie"
+          ? ["media_sources!inner(provider, tmdb_content_expires_at)"]
+          : []),
+      ].join(",");
 
   let query = supabase
     .from("media")
@@ -97,6 +123,8 @@ export async function getSupabaseGuessClues(
     query = query
       .eq("media_sources.provider", "tmdb")
       .gt("media_sources.tmdb_content_expires_at", new Date().toISOString());
+  } else if (mediaType === "book") {
+    query = query.eq("format", "novel").eq("media_sources.provider", "wikidata");
   }
 
   const { data, error } = await query;
