@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "import:tenrai": "tsx scripts/import-tenrai.ts",
-    "import:tmdb": "tsx scripts/import-tmdb.ts"
+    "import:tmdb": "tsx scripts/import-tmdb.ts",
+    "import:wikidata-books": "tsx scripts/import-wikidata-books.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
