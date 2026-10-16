@@ -1,6 +1,6 @@
 # ClueVerse progress and handoff
 
-Last updated: 2026-10-14
+Last updated: 2026-10-16
 
 ## Product aim
 
@@ -14,6 +14,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 - PR #14 extended approved-title suggestions to movies, added safe field-by-field wrong-guess comparisons for both games, and simplified the shared UI palette. Anime compares its available genre, year, format, episode, studio, and content-rating fields; movies compare genre and year only. It deliberately does not add a director comparison because director is not in the movie clue model.
 - PR #14 is merged and its Vercel production deployment is Ready. A live smoke check on `https://clueverse-phi.vercel.app` returned answer-free puzzle payloads and confirmed suggestions plus available comparisons for both verticals.
 - PR #16 added an accessible skip action for both verticals. It consumes one attempt, reveals the next clue, and a final skip ends the round and reveals the answer. CI and Vercel checks passed; it is merged.
+- The current worktree adds shareable, answer-free result summaries for both verticals, using native share when available and clipboard fallback. Validation is pending; this change is not merged or deployed.
 - **Production domain check needed:** `https://clueverse.vercel.app` currently serves a different Vite single-page app (HTML shell) instead of this Next.js game. The current Vercel production deployment advertises `clueverse-phi.vercel.app`, `clueverse-mbaqi1702.vercel.app`, and `clueverse-git-main-mbaqi1702.vercel.app`. Confirm the intended public URL and domain assignment in Vercel before sharing or changing aliases; no alias change has been made.
 - PR #7 remains open with conflicts and outdated launch documentation; do not merge it as-is. Use this handoff and the current source documents instead.
 - Answers and unrevealed clues stay server-side; wrong guesses reveal clues and rounds end after five attempts.
@@ -37,7 +38,7 @@ Build a polished daily media mystery game: players identify a title from a synop
 
 1. **Resolve the public-domain mismatch:** decide whether `clueverse.vercel.app` should point at this app or whether `clueverse-phi.vercel.app` is the intended public URL. Make any Vercel alias/DNS change only after confirming ownership and the desired canonical domain; recheck `/`, `/movies`, and both APIs afterward.
 2. **Books pilot:** inspect the Google Cloud API quota and configure a Books-API-restricted key locally (never share it in chat); then repeat one five-record, no-write metadata sample. Stop on another 429. Do not write records or create a Books game until field rights, sample quality, and editions are reviewed. See [the pilot notes](./docs/google-books-pilot.md).
-3. **Run a player acceptance pass on the confirmed public URL:** check the suggestions, comparisons, and skip action on a real mobile device, keyboard-only navigation, screen-reader labels, and the TMDB attribution/footer. Collect player feedback before adding more features.
+3. **Run a player acceptance pass on the confirmed public URL:** check the suggestions, comparisons, skip, and share actions on a real mobile device, keyboard-only navigation, screen-reader labels, and the TMDB attribution/footer. Collect player feedback before adding more features.
 4. **Improve catalog depth deliberately:** the last verified movie catalog has 20 approved titles. Review a fresh no-write TMDB import preview and obtain explicit approval for a specific batch before any writes or title approvals. Do not start the next import automatically.
 5. **Operate the live catalog:** monitor scheduled puzzle availability, comparison/suggestion errors, and TMDB expiry/purge behavior; refresh the anime catalog counts before relying on the older snapshot. Keep accounts, persistent streaks, and leaderboards deferred until anonymous play is validated; keep each media type in a separate daily game and do not persist AniList data.
 

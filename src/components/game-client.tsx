@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import type { Clue, PublicPuzzle } from "@/lib/game/content";
 import type { GuessComparison, GuessResult } from "@/lib/game/guess";
+import { formatShareResult } from "@/lib/game/share-result";
 
 type GameStatus = "playing" | "won" | "lost";
 
@@ -56,6 +57,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
   const [submitting, setSubmitting] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
   const maxAttempts = puzzle?.maxAttempts ?? (isMovie ? 3 : 5);
 
   useEffect(() => {
@@ -232,6 +234,40 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
 
   function skipAttempt() {
     void submitAttempt({ skip: true }, "Skipped");
+  }
+
+  async function shareResult() {
+    if (!puzzle || status === "playing") return;
+    setShareMessage("");
+
+    const text = formatShareResult({
+      vertical,
+      date: puzzle.date,
+      status,
+      attempts: guesses.map((item) => item.result),
+      maxAttempts,
+    });
+    const title = `ClueVerse ${mediaName} result`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text });
+        setShareMessage("Result shared.");
+        return;
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard access is unavailable.");
+      }
+      await navigator.clipboard.writeText(text);
+      setShareMessage("Result copied to the clipboard.");
+    } catch {
+      setShareMessage("Could not share or copy your result. Please try again.");
+    }
   }
 
   const attemptsLeft = puzzle ? puzzle.maxAttempts - guesses.length : 0;
@@ -457,6 +493,10 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                 {status === "won" ? "The answer was" : "Today’s answer was"}{" "}
                 <span>{answer}</span>
               </p>
+              <button className="skip-button share-button" onClick={shareResult} type="button">
+                Share result
+              </button>
+              {shareMessage && <p className="share-message" role="status">{shareMessage}</p>}
             </div>
           ) : null}
         </section>
