@@ -45,6 +45,20 @@ Google Books is the desired API candidate, but its configured project currently 
 
 Only after applying the migration and reviewing the specific preview may an operator explicitly use `--apply`; this requires the server-only Supabase credentials in ignored `.env.local`. The service-role batch upsert leaves each novel pending review and will not overwrite approved canonical book content on re-import. A reviewer must write an original synopsis, validate the novel/edition, author, year, and genres, and only then set `review_status = 'approved'`. The daily-book RPC selects only approved books with original synopsis, author, genre, and Wikidata provenance. The `/books` route uses a separate daily schedule and answer-free API; until a book is curated and assigned, Supabase mode returns 503 instead of a sample fallback. No automatic approval is included.
 
+#### Books migration and rollout order
+
+The local no-write preview on 2026-10-17 fetched ten candidates for `Frankenstein`: one mapped novel (*Frankenstein; or, The Modern Prometheus*, Wikidata Q150827) and nine rejected candidates; zero records were written. This is evidence to review, not approval to change the database or import the title.
+
+Keep the two migrations staged:
+
+1. Review the preview and `20261016000100_add_wikidata_novel_import.sql`. After the project owner explicitly approves changing the intended Supabase project, apply this staging-schema migration using the project's normal migration process. It adds book metadata tables and the service-role-only staging RPC; it does not add any catalog records.
+2. Review a specific bounded dry-run batch. Only with separate explicit approval for that batch, run `npm.cmd run import:wikidata-books -- --query=Frankenstein --limit=10 --apply` from PowerShell with the intended project's server-only credentials in ignored `.env.local`. This writes metadata as `pending_review`; it does not make any record playable.
+3. A human reviews each imported title, edition, author, year, genres, and provenance, writes an original synopsis of at least 80 characters, and explicitly approves only eligible records. Do not copy Wikidata descriptions or book text.
+4. Once at least one approved playable novel exists and the owner approves enabling database-backed Books serving, review and apply `20261016000200_enable_daily_wikidata_novels.sql`. It creates the guarded daily schedule table and assignment RPC. Until an eligible novel is available, the Books API should return 503 rather than sample content.
+5. Enable/test Supabase Books serving in a non-production preview first. Verify `/api/game/books/today` exposes only public fields, guesses reveal clues correctly, suggestions omit the scheduled answer, and the daily assignment is stable. Enable production only after that acceptance check.
+
+Do not apply these migrations or run `--apply` merely because a preview is available. The current repository/workspace does not have the Supabase CLI or `psql` installed; apply migrations through the already authorized project migration workflow, not by improvising a direct database connection.
+
 ### Title suggestions and wrong-guess comparisons
 
 The shared game client provides keyboard-operable title suggestions for each vertical. In Supabase mode, anime suggestions use approved anime records; movie suggestions use approved TMDB-backed records whose source content has not expired; book suggestions use approved Wikidata-backed novels with publication-year, genre, and author metadata. Each list omits the active answer, and selecting a suggestion fills the input without submitting a guess. Players can also skip an attempt to reveal the next clue; the skip counts against the same attempt limit and the final skip ends the round. Free-form titles remain accepted, but field comparisons are available only when the exact title uniquely matches an approved catalog record.
