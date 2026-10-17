@@ -10,7 +10,8 @@
     "test": "vitest run",
     "import:tenrai": "tsx scripts/import-tenrai.ts",
     "import:tmdb": "tsx scripts/import-tmdb.ts",
-    "import:wikidata-books": "tsx scripts/import-wikidata-books.ts"
+    "import:wikidata-books": "tsx scripts/import-wikidata-books.ts",
+    "import:wikidata-books-bulk": "tsx scripts/import-wikidata-books-bulk.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

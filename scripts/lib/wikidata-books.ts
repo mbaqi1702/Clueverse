@@ -88,6 +88,27 @@ export function parseWikidataSearchIds(value: unknown, limit: number): string[] 
   ].slice(0, limit);
 }
 
+export function parseWikidataSparqlIds(value: unknown, limit: number): string[] {
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_SEARCH_RESULTS * 10) {
+    throw new RangeError("Wikidata bulk limit must be an integer from 1 to 200.");
+  }
+  if (!isRecord(value) || !isRecord(value.results) || !Array.isArray(value.results.bindings)) {
+    throw new Error("Wikidata returned an unexpected SPARQL response.");
+  }
+
+  return [
+    ...new Set(
+      value.results.bindings.flatMap((binding) => {
+        if (!isRecord(binding) || !isRecord(binding.work)) return [];
+        const uri = binding.work.value;
+        if (typeof uri !== "string") return [];
+        const match = uri.match(/^https?:\/\/www\.wikidata\.org\/entity\/(Q[1-9]\d*)$/);
+        return match ? [match[1]] : [];
+      }),
+    ),
+  ].slice(0, limit);
+}
+
 export function parseWikidataEntities(value: unknown): unknown[] {
   if (!isRecord(value) || !isRecord(value.entities)) {
     throw new Error("Wikidata returned an unexpected entity response.");

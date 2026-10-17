@@ -6,6 +6,7 @@ import {
   parseWikidataImportOptions,
   parseWikidataLabels,
   parseWikidataSearchIds,
+  parseWikidataSparqlIds,
 } from "./wikidata-books";
 
 const novel = {
@@ -98,6 +99,28 @@ describe("Wikidata API parsing", () => {
       entities: { Q47152: { labels: { en: { value: "Mary Shelley" } } } },
     })).toEqual(new Map([["Q47152", "Mary Shelley"]]));
     expect(() => parseWikidataEntities({})).toThrow("unexpected entity response");
+  });
+
+  it("parses only unique Wikidata entity IDs from bounded SPARQL results", () => {
+    expect(
+      parseWikidataSparqlIds(
+        {
+          results: {
+            bindings: [
+              { work: { type: "uri", value: "http://www.wikidata.org/entity/Q41542" } },
+              { work: { type: "uri", value: "https://www.wikidata.org/entity/Q170583" } },
+              { work: { type: "uri", value: "https://www.wikidata.org/entity/Q41542" } },
+              { work: { type: "uri", value: "https://example.com/Q1" } },
+            ],
+          },
+        },
+        10,
+      ),
+    ).toEqual(["Q41542", "Q170583"]);
+    expect(() => parseWikidataSparqlIds({ results: { bindings: [] } }, 201)).toThrow(
+      RangeError,
+    );
+    expect(() => parseWikidataSparqlIds({}, 10)).toThrow("unexpected SPARQL response");
   });
 
   it("collects only author and genre item identifiers for label lookup", () => {
