@@ -5,16 +5,14 @@ import type { FormEvent, KeyboardEvent } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import type { Clue, PublicPuzzle } from "@/lib/game/content";
-import type { GuessComparison, GuessResult } from "@/lib/game/guess";
+import type { GuessResult } from "@/lib/game/guess";
+import {
+  deserializeRoundProgress,
+  getRoundProgressKey,
+  serializeRoundProgress,
+} from "@/lib/game/round-progress";
+import type { GameStatus, GuessRecord } from "@/lib/game/round-progress";
 import { formatShareResult } from "@/lib/game/share-result";
-
-type GameStatus = "playing" | "won" | "lost";
-
-type GuessRecord = {
-  value: string;
-  result: "wrong" | "correct" | "skipped";
-  comparison?: GuessComparison;
-};
 
 type GameClientProps = {
   vertical?: "anime" | "movie" | "book";
@@ -64,7 +62,11 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const [shareMessage, setShareMessage] = useState("");
+  const [restoredProgressKey, setRestoredProgressKey] = useState("");
+  const [progressWarning, setProgressWarning] = useState("");
   const maxAttempts = puzzle?.maxAttempts ?? (isMovie ? 3 : 5);
+  const progressKey = puzzle ? getRoundProgressKey(vertical, puzzle) : "";
+  const progressReady = Boolean(progressKey && restoredProgressKey === progressKey);
 
   useEffect(() => {
     let active = true;
@@ -89,7 +91,26 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         return data;
       })
       .then((data) => {
-        if (active) setPuzzle(data);
+        if (!active) return;
+
+        const key = getRoundProgressKey(vertical, data);
+        let progress = null;
+        try {
+          const savedProgress = localStorage.getItem(key);
+          progress = deserializeRoundProgress(savedProgress, data);
+          if (savedProgress && !progress) localStorage.removeItem(key);
+          setProgressWarning("");
+        } catch (error) {
+          console.error("Could not restore saved game progress.", error);
+          setProgressWarning("Progress could not be restored and may be lost if you refresh.");
+        }
+
+        setGuesses(progress?.guesses ?? []);
+        setClues(progress?.clues ?? []);
+        setStatus(progress?.status ?? "playing");
+        setAnswer(progress?.answer ?? "");
+        setPuzzle(data);
+        setRestoredProgressKey(key);
       })
       .catch((error: unknown) => {
         const message =
@@ -106,7 +127,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     return () => {
       active = false;
     };
-  }, [loadAttempt, todayEndpoint]);
+  }, [loadAttempt, todayEndpoint, vertical]);
 
   useEffect(() => {
     const query = guess.trim();
@@ -188,7 +209,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     action: { guess: string } | { skip: true },
     displayValue: string,
   ) {
-    if (!puzzle || submitting || status !== "playing") return;
+    if (!puzzle || !progressReady || submitting || status !== "playing") return;
     setSubmitting(true);
     setError("");
     try {
@@ -206,23 +227,42 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         return;
       }
 
-      setGuesses((previous) => [
-        ...previous,
-        {
-          value: displayValue,
-          result: result.correct ? "correct" : result.skipped ? "skipped" : "wrong",
-          comparison: result.correct || result.skipped ? undefined : result.comparison,
-        },
-      ]);
+      const nextGuess: GuessRecord = {
+        value: displayValue,
+        result: result.correct ? "correct" : result.skipped ? "skipped" : "wrong",
+        comparison: result.correct || result.skipped ? undefined : result.comparison,
+      };
+      const nextGuesses = [...guesses, nextGuess];
+      setGuesses(nextGuesses);
       setGuess("");
       setSuggestions([]);
       setSuggestionError("");
       setActiveSuggestion(-1);
       const nextClue = result.correct ? undefined : result.clue;
-      if (nextClue) setClues((previous) => [...previous, nextClue]);
+      const nextClues = nextClue ? [...clues, nextClue] : clues;
+      if (nextClue) setClues(nextClues);
+      const nextStatus: GameStatus = result.completed
+        ? result.correct ? "won" : "lost"
+        : status;
+      const nextAnswer = result.completed && result.answer ? result.answer : answer;
       if (result.completed) {
         if (result.answer) setAnswer(result.answer);
-        setStatus(result.correct ? "won" : "lost");
+        setStatus(nextStatus);
+      }
+      try {
+        localStorage.setItem(
+          progressKey,
+          serializeRoundProgress(puzzle, {
+            guesses: nextGuesses,
+            clues: nextClues,
+            status: nextStatus,
+            answer: nextAnswer,
+          }),
+        );
+        setProgressWarning("");
+      } catch (error) {
+        console.error("Could not save game progress.", error);
+        setProgressWarning("Progress could not be saved on this device and may be lost if you refresh.");
       }
     } catch {
       setError("The guess could not be checked. Please try again.");
@@ -276,7 +316,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     }
   }
 
-  const attemptsLeft = puzzle ? puzzle.maxAttempts - guesses.length : 0;
+  const attemptsLeft = puzzle && progressReady ? puzzle.maxAttempts - guesses.length : 0;
 
   return (
     <>
@@ -350,7 +390,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
             </div>
           </div>
 
-          {clues.length > 0 && (
+          {progressReady && clues.length > 0 && (
             <ol aria-label="Unlocked clues" className="clue-list">
               {clues.map((clue, index) => (
                 <li className="clue-row" key={`${clue.label}-${index}`}>
@@ -364,7 +404,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
             </ol>
           )}
 
-          {guesses.length > 0 && (
+          {progressReady && guesses.length > 0 && (
             <ol aria-label="Your guesses" aria-live="polite" className="guess-list">
               {guesses.map((item, index) => (
                 <li className="guess-row" key={`${index}-${item.value}`}>
@@ -400,7 +440,9 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
             </ol>
           )}
 
-          {status === "playing" && puzzle ? (
+          {puzzle && !progressReady ? (
+            <p className="synopsis-copy" role="status">Restoring your saved game…</p>
+          ) : progressReady && status === "playing" && puzzle ? (
             <form className="guess-form" onSubmit={submitGuess}>
               <label className="section-label" htmlFor={`${mediaName}-guess`}>Your guess</label>
               <div className="guess-controls">
@@ -427,7 +469,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                     placeholder={titleName}
                     role="combobox"
                     value={guess}
-                    disabled={loading || submitting || !puzzle}
+                    disabled={loading || submitting || !progressReady}
                   />
                   {suggestions.length > 0 && (
                     <ul
@@ -458,7 +500,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                 </div>
                 <button
                   className="guess-submit"
-                  disabled={loading || submitting || !guess.trim() || !puzzle}
+                  disabled={loading || submitting || !guess.trim() || !progressReady}
                   aria-label={submitting ? "Checking guess" : "Submit guess"}
                   title={submitting ? "Checking guess" : "Submit guess"}
                   type="submit"
@@ -486,7 +528,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
               </div>
               <button
                 className="skip-button"
-                disabled={loading || submitting || !puzzle}
+                disabled={loading || submitting || !progressReady}
                 onClick={skipAttempt}
                 type="button"
               >
@@ -495,7 +537,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
               {suggestionError && <p className="suggestion-error" role="status">{suggestionError}</p>}
               {error && <p className="error-copy" role="alert">{error}</p>}
             </form>
-          ) : status !== "playing" ? (
+          ) : progressReady && status !== "playing" ? (
             <div className="result-panel" role="status">
               <p className="section-label">{status === "won" ? "Solved" : "Round complete"}</p>
               <p className="result-copy">
@@ -511,8 +553,9 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         </section>
 
         <p className="play-note">
-            {maxAttempts} attempts. Wrong guesses and skips reveal clues. Your round resets if you refresh.
+          {maxAttempts} attempts. Wrong guesses and skips reveal clues. Progress is saved on this device for today’s puzzle.
         </p>
+        {progressWarning && <p className="suggestion-error" role="status">{progressWarning}</p>}
       </main>
 
       <footer className="site-footer">
