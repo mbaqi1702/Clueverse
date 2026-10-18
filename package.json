@@ -11,7 +11,9 @@
     "import:tenrai": "tsx scripts/import-tenrai.ts",
     "import:tmdb": "tsx scripts/import-tmdb.ts",
     "import:wikidata-books": "tsx scripts/import-wikidata-books.ts",
-    "import:wikidata-books-bulk": "tsx scripts/import-wikidata-books-bulk.ts"
+    "import:wikidata-books-bulk": "tsx scripts/import-wikidata-books-bulk.ts",
+    "curate:wikidata-books": "tsx scripts/curate-wikidata-books.ts",
+    "curate:wikidata-books:apply": "tsx scripts/curate-wikidata-books.ts --apply"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
