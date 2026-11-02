@@ -17,17 +17,15 @@ export async function getWikidataBookTitleSuggestions(
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: assignment, error: assignmentError } = await supabase
-    .from("daily_book_puzzles")
-    .select("media_id")
-    .eq("puzzle_date", puzzleDate)
-    .in("status", ["scheduled", "published"])
-    .maybeSingle();
+  const { data: mediaId, error: assignmentError } = await supabase.rpc(
+    "get_or_create_daily_wikidata_novel_puzzle",
+    { p_puzzle_date: puzzleDate },
+  );
 
   if (assignmentError) {
-    throw new Error(`Supabase daily book lookup failed: ${assignmentError.message}`);
+    throw new Error(`Supabase daily book assignment failed: ${assignmentError.message}`);
   }
-  if (typeof assignment?.media_id !== "string") {
+  if (typeof mediaId !== "string") {
     throw new Error(`No approved book is scheduled for ${puzzleDate} (UTC).`);
   }
 
@@ -43,7 +41,7 @@ export async function getWikidataBookTitleSuggestions(
     `)
     .eq("media_type", "book")
     .eq("review_status", "approved")
-    .neq("id", assignment.media_id)
+    .neq("id", mediaId)
     .eq("format", "novel")
     .eq("media_sources.provider", "wikidata")
     .ilike("title", `${escapedQuery}%`)
