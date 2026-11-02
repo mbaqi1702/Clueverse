@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import { formatShareResult } from "@/lib/game/share-result";
 type GameClientProps = {
   vertical?: "anime" | "movie" | "book";
 };
+
+const MAX_CACHED_SUGGESTION_QUERIES = 40;
 
 function isPublicPuzzle(value: unknown): value is PublicPuzzle {
   return (
@@ -53,6 +55,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [dismissedSuggestionQuery, setDismissedSuggestionQuery] = useState("");
   const [suggestionError, setSuggestionError] = useState("");
+  const suggestionCache = useRef(new Map<string, string[]>());
   const [guesses, setGuesses] = useState<GuessRecord[]>([]);
   const [clues, setClues] = useState<Clue[]>([]);
   const [status, setStatus] = useState<GameStatus>("playing");
@@ -140,6 +143,13 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       return;
     }
 
+    const cacheKey = `${vertical}:${puzzle.date}:${query.toLowerCase()}`;
+    if (suggestionCache.current.has(cacheKey)) {
+      setSuggestions(suggestionCache.current.get(cacheKey) ?? []);
+      setSuggestionError("");
+      return;
+    }
+
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       try {
@@ -153,6 +163,12 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         if (!response.ok || "error" in result) {
           throw new Error("error" in result ? result.error : "Title suggestions are unavailable.");
         }
+        if (controller.signal.aborted) return;
+        if (suggestionCache.current.size >= MAX_CACHED_SUGGESTION_QUERIES) {
+          const oldestKey = suggestionCache.current.keys().next().value;
+          if (oldestKey !== undefined) suggestionCache.current.delete(oldestKey);
+        }
+        suggestionCache.current.set(cacheKey, result.suggestions);
         setSuggestions(result.suggestions);
         setSuggestionError("");
       } catch {
@@ -167,7 +183,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [dismissedSuggestionQuery, guess, mediaName, puzzle, status]);
+  }, [dismissedSuggestionQuery, guess, mediaName, puzzle, status, vertical]);
 
   function retryLoadPuzzle() {
     setLoadError("");
