@@ -442,7 +442,7 @@ button:disabled {
 
 .suggestion-list {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   inset: calc(100% + 0.25rem) 0 auto;
   max-height: 16rem;
   overflow-y: auto;
@@ -453,6 +453,13 @@ button:disabled {
   background: var(--sheet);
   box-shadow: 0 0.75rem 1.75rem rgb(16 24 40 / 12%);
   list-style: none;
+}
+
+.suggestion-status {
+  margin: 0;
+  padding: 0.75rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
 }
 
 .suggestion-option {

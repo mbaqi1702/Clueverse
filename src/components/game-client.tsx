@@ -52,6 +52,8 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [guess, setGuess] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionFinishedQuery, setSuggestionFinishedQuery] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [dismissedSuggestionQuery, setDismissedSuggestionQuery] = useState("");
   const [suggestionError, setSuggestionError] = useState("");
@@ -70,6 +72,12 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
   const maxAttempts = puzzle?.maxAttempts ?? (isMovie ? 3 : 5);
   const progressKey = puzzle ? getRoundProgressKey(vertical, puzzle) : "";
   const progressReady = Boolean(progressKey && restoredProgressKey === progressKey);
+  const hasNoSuggestionResults =
+    Boolean(guess.trim()) &&
+    suggestionFinishedQuery === guess.trim() &&
+    !suggestions.length &&
+    !suggestionLoading &&
+    !suggestionError;
 
   useEffect(() => {
     let active = true;
@@ -147,11 +155,13 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     if (suggestionCache.current.has(cacheKey)) {
       setSuggestions(suggestionCache.current.get(cacheKey) ?? []);
       setSuggestionError("");
+      setSuggestionFinishedQuery(query);
       return;
     }
 
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
+      setSuggestionLoading(true);
       try {
         const response = await fetch(
           `/api/game/suggestions?vertical=${mediaName}&q=${encodeURIComponent(query)}`,
@@ -171,13 +181,16 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
         suggestionCache.current.set(cacheKey, result.suggestions);
         setSuggestions(result.suggestions);
         setSuggestionError("");
+        setSuggestionFinishedQuery(query);
       } catch {
         if (!controller.signal.aborted) {
           setSuggestions([]);
           setSuggestionError("Title suggestions are unavailable. You can still enter a guess.");
         }
+      } finally {
+        if (!controller.signal.aborted) setSuggestionLoading(false);
       }
-    }, 180);
+    }, 120);
 
     return () => {
       window.clearTimeout(timeout);
@@ -195,12 +208,18 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     setGuess(title);
     setDismissedSuggestionQuery(title);
     setSuggestions([]);
+    setSuggestionLoading(false);
+    setSuggestionFinishedQuery("");
     setActiveSuggestion(-1);
   }
 
   function handleGuessKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (!suggestions.length) {
-      if (event.key === "Escape") setDismissedSuggestionQuery(guess.trim());
+      if (event.key === "Escape") {
+        setDismissedSuggestionQuery(guess.trim());
+        setSuggestionLoading(false);
+        setSuggestionFinishedQuery("");
+      }
       return;
     }
 
@@ -217,6 +236,8 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       event.preventDefault();
       setDismissedSuggestionQuery(guess.trim());
       setSuggestions([]);
+      setSuggestionLoading(false);
+      setSuggestionFinishedQuery("");
       setActiveSuggestion(-1);
     }
   }
@@ -226,6 +247,8 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     displayValue: string,
   ) {
     if (!puzzle || !progressReady || submitting || status !== "playing") return;
+    setSuggestionLoading(false);
+    setSuggestionFinishedQuery("");
     setSubmitting(true);
     setError("");
     try {
@@ -252,6 +275,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       setGuesses(nextGuesses);
       setGuess("");
       setSuggestions([]);
+      setSuggestionFinishedQuery("");
       setSuggestionError("");
       setActiveSuggestion(-1);
       const nextClue = result.correct ? undefined : result.clue;
@@ -469,7 +493,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                     }
                     aria-autocomplete="list"
                     aria-controls={`${mediaName}-title-suggestions`}
-                    aria-expanded={suggestions.length > 0}
+                    aria-expanded={suggestions.length > 0 || suggestionLoading || hasNoSuggestionResults}
                     autoComplete="off"
                     className="guess-input"
                     id={`${mediaName}-guess`}
@@ -478,6 +502,8 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                       setGuess(event.target.value);
                       setDismissedSuggestionQuery("");
                       setSuggestions([]);
+                      setSuggestionLoading(false);
+                      setSuggestionFinishedQuery("");
                       setSuggestionError("");
                       setActiveSuggestion(-1);
                     }}
@@ -487,13 +513,19 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                     value={guess}
                     disabled={loading || submitting || !progressReady}
                   />
-                  {suggestions.length > 0 && (
+                  {(suggestions.length > 0 || suggestionLoading || hasNoSuggestionResults) && (
                     <ul
                       className="suggestion-list"
                       id={`${mediaName}-title-suggestions`}
                       role="listbox"
                     >
-                      {suggestions.map((title, index) => (
+                      {suggestionLoading ? (
+                        <li className="suggestion-status" role="presentation">Searching titles…</li>
+                      ) : hasNoSuggestionResults ? (
+                        <li className="suggestion-status" role="presentation">
+                          No catalog matches yet. You can still submit your guess.
+                        </li>
+                      ) : suggestions.map((title, index) => (
                         <li
                           aria-selected={index === activeSuggestion}
                           className={

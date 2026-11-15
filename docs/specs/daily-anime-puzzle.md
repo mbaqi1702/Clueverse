@@ -16,7 +16,7 @@ A visitor can open the daily puzzle, read its opening synopsis, submit an anime 
 - Explicit Rx/Hentai-rated titles are excluded from public daily assignment.
 - Invalid JSON, empty or oversized guesses, and out-of-range attempt numbers receive a 400 response.
 - The UI works at mobile and desktop widths, supports keyboard submission, reports loading/errors, and respects reduced-motion preferences.
-- In database mode, approved anime title suggestions are keyboard-operable, exclude the active answer, and selecting a suggestion does not submit a guess.
+- In database mode, approved anime title suggestions match partial title text, rank title beginnings first, are keyboard-operable, exclude the active answer, and selecting a suggestion does not submit a guess. Search feedback indicates loading and empty results.
 - For a wrong guess that uniquely matches an approved catalog title, show comparisons only for shared anime fields. Genre/studio matches are explicit; year/episode hints reveal direction only, never the answer's exact values. Unknown or ambiguous titles remain valid guesses without field comparisons.
 - A skipped attempt is visibly recorded as “Skipped” and never triggers a guessed-title comparison.
 - Guesses and unlocked clues resume after refresh in the same browser for that game and UTC puzzle date; progress is not synchronized across devices or stored as an account/server record.
