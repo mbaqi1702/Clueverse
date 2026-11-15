@@ -21,14 +21,12 @@ beforeEach(() => {
   const titleQuery = {
     select: vi.fn(),
     eq: vi.fn(),
-    neq: vi.fn(),
     ilike: vi.fn(),
     order: vi.fn(),
     limit: supabaseMocks.titleLimit,
   };
   titleQuery.select.mockReturnValue(titleQuery);
   titleQuery.eq.mockReturnValue(titleQuery);
-  titleQuery.neq.mockReturnValue(titleQuery);
   titleQuery.ilike.mockReturnValue(titleQuery);
   titleQuery.order.mockReturnValue(titleQuery);
 
@@ -37,7 +35,7 @@ beforeEach(() => {
     error: null,
   });
   supabaseMocks.titleLimit.mockReset().mockResolvedValue({
-    data: [{ title: "Reviewed novel" }],
+    data: [{ id: "book-id", title: "Reviewed novel" }],
     error: null,
   });
   supabaseMocks.createClient.mockReset().mockReturnValue({
@@ -67,9 +65,8 @@ describe("getWikidataBookTitleSuggestions", () => {
     expect(titleQuery.eq).toHaveBeenCalledWith("review_status", "approved");
     expect(titleQuery.eq).toHaveBeenCalledWith("format", "novel");
     expect(titleQuery.eq).toHaveBeenCalledWith("media_sources.provider", "wikidata");
-    expect(titleQuery.neq).toHaveBeenCalledWith("id", "daily-answer-id");
-    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "rev%");
-    expect(titleQuery.limit).toHaveBeenCalledWith(8);
+    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%rev%");
+    expect(titleQuery.limit).toHaveBeenCalledWith(64);
   });
 
   it("escapes wildcard characters in the search prefix", async () => {
@@ -77,15 +74,15 @@ describe("getWikidataBookTitleSuggestions", () => {
 
     const client = supabaseMocks.createClient.mock.results[0].value;
     const titleQuery = client.from.mock.results[0].value;
-    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "a\\%\\_%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%a\\%\\_%");
   });
 
-  it("does not search when no daily book assignment is available", async () => {
+  it("does not return suggestions when no daily book assignment is available", async () => {
     supabaseMocks.assignPuzzle.mockResolvedValue({ data: null, error: null });
 
     await expect(
       getWikidataBookTitleSuggestions("a", "2026-11-02"),
     ).rejects.toThrow("No approved book is scheduled for 2026-11-02 (UTC).");
-    expect(supabaseMocks.titleLimit).not.toHaveBeenCalled();
+    expect(supabaseMocks.titleLimit).toHaveBeenCalledOnce();
   });
 });

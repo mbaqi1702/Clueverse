@@ -1,8 +1,10 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-
-const MAX_SUGGESTIONS = 8;
+import {
+  rankTitleSuggestions,
+  TITLE_SUGGESTION_CANDIDATE_LIMIT,
+} from "@/lib/game/title-suggestions";
 
 export async function getAnimeTitleSuggestions(
   query: string,
@@ -17,36 +19,33 @@ export async function getAnimeTitleSuggestions(
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: assignment, error: assignmentError } = await supabase
-    .from("daily_puzzles")
-    .select("media_id")
-    .eq("puzzle_date", puzzleDate)
-    .in("status", ["scheduled", "published"])
-    .maybeSingle();
+  const [assignmentResult, titleResult] = await Promise.all([
+    supabase
+      .from("daily_puzzles")
+      .select("media_id")
+      .eq("puzzle_date", puzzleDate)
+      .in("status", ["scheduled", "published"])
+      .maybeSingle(),
+    supabase
+      .from("media")
+      .select("id, title")
+      .eq("media_type", "anime")
+      .eq("review_status", "approved")
+      .ilike("title", `%${query.replace(/[\\%_]/g, "\\$&")}%`)
+      .order("title", { ascending: true })
+      .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
+  ]);
 
-  if (assignmentError) {
-    throw new Error(`Supabase daily puzzle lookup failed: ${assignmentError.message}`);
+  if (assignmentResult.error) {
+    throw new Error(`Supabase daily puzzle lookup failed: ${assignmentResult.error.message}`);
   }
-  if (typeof assignment?.media_id !== "string") {
+  const activeAnswerId = assignmentResult.data?.media_id;
+  if (typeof activeAnswerId !== "string") {
     throw new Error(`No approved puzzle is scheduled for ${puzzleDate} (UTC).`);
   }
-
-  const escapedQuery = query.replace(/[\\%_]/g, "\\$&");
-  const { data, error } = await supabase
-    .from("media")
-    .select("title")
-    .eq("media_type", "anime")
-    .eq("review_status", "approved")
-    .neq("id", assignment.media_id)
-    .ilike("title", `${escapedQuery}%`)
-    .order("title", { ascending: true })
-    .limit(MAX_SUGGESTIONS);
-
-  if (error) {
-    throw new Error(`Supabase anime title search failed: ${error.message}`);
+  if (titleResult.error) {
+    throw new Error(`Supabase anime title search failed: ${titleResult.error.message}`);
   }
 
-  return (data ?? [])
-    .map((row) => row.title)
-    .filter((title): title is string => typeof title === "string");
+  return rankTitleSuggestions(titleResult.data ?? [], activeAnswerId, query);
 }
