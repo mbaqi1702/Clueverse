@@ -1,8 +1,10 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-
-const MAX_SUGGESTIONS = 8;
+import {
+  rankTitleSuggestions,
+  TITLE_SUGGESTION_CANDIDATE_LIMIT,
+} from "@/lib/game/title-suggestions";
 
 export async function getWikidataBookTitleSuggestions(
   query: string,
@@ -17,42 +19,38 @@ export async function getWikidataBookTitleSuggestions(
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: mediaId, error: assignmentError } = await supabase.rpc(
-    "get_or_create_daily_wikidata_novel_puzzle",
-    { p_puzzle_date: puzzleDate },
-  );
+  const [assignmentResult, titleResult] = await Promise.all([
+    supabase.rpc("get_or_create_daily_wikidata_novel_puzzle", {
+      p_puzzle_date: puzzleDate,
+    }),
+    supabase
+      .from("media")
+      .select(`
+        id,
+        title,
+        media_sources!inner(provider),
+        media_book_details!inner(first_publication_year),
+        media_genres!inner(genre_id),
+        media_book_authors!inner(author_id)
+      `)
+      .eq("media_type", "book")
+      .eq("review_status", "approved")
+      .eq("format", "novel")
+      .eq("media_sources.provider", "wikidata")
+      .ilike("title", `%${query.replace(/[\\%_]/g, "\\$&")}%`)
+      .order("title", { ascending: true })
+      .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
+  ]);
 
-  if (assignmentError) {
-    throw new Error(`Supabase daily book assignment failed: ${assignmentError.message}`);
+  if (assignmentResult.error) {
+    throw new Error(`Supabase daily book assignment failed: ${assignmentResult.error.message}`);
   }
-  if (typeof mediaId !== "string") {
+  if (typeof assignmentResult.data !== "string") {
     throw new Error(`No approved book is scheduled for ${puzzleDate} (UTC).`);
   }
-
-  const escapedQuery = query.replace(/[\\%_]/g, "\\$&");
-  const { data, error } = await supabase
-    .from("media")
-    .select(`
-      title,
-      media_sources!inner(provider),
-      media_book_details!inner(first_publication_year),
-      media_genres!inner(genre_id),
-      media_book_authors!inner(author_id)
-    `)
-    .eq("media_type", "book")
-    .eq("review_status", "approved")
-    .neq("id", mediaId)
-    .eq("format", "novel")
-    .eq("media_sources.provider", "wikidata")
-    .ilike("title", `${escapedQuery}%`)
-    .order("title", { ascending: true })
-    .limit(MAX_SUGGESTIONS);
-
-  if (error) {
-    throw new Error(`Supabase book title search failed: ${error.message}`);
+  if (titleResult.error) {
+    throw new Error(`Supabase book title search failed: ${titleResult.error.message}`);
   }
 
-  return (data ?? [])
-    .map((row) => row.title)
-    .filter((title): title is string => typeof title === "string");
+  return rankTitleSuggestions(titleResult.data ?? [], assignmentResult.data, query);
 }

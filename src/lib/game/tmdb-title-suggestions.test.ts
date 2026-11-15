@@ -28,10 +28,9 @@ beforeEach(() => {
   assignmentQuery.eq.mockReturnValue(assignmentQuery);
   assignmentQuery.in.mockReturnValue(assignmentQuery);
 
-  const titleQuery = {
+  const   titleQuery = {
     select: vi.fn(),
     eq: vi.fn(),
-    neq: vi.fn(),
     gt: vi.fn(),
     ilike: vi.fn(),
     order: vi.fn(),
@@ -44,7 +43,10 @@ beforeEach(() => {
   });
   titleQuery.limit = supabaseMocks.titleLimit;
   titleQuery.limit.mockReset();
-  titleQuery.limit.mockResolvedValue({ data: [{ title: "Swapped" }], error: null });
+  titleQuery.limit.mockResolvedValue({
+    data: [{ id: "movie-id", title: "Swapped" }],
+    error: null,
+  });
 
   supabaseMocks.assignmentMaybeSingle.mockReset().mockResolvedValue({
     data: { media_id: "daily-answer-id" },
@@ -70,13 +72,12 @@ describe("getTmdbMovieTitleSuggestions", () => {
     expect(titleQuery.eq).toHaveBeenCalledWith("media_type", "movie");
     expect(titleQuery.eq).toHaveBeenCalledWith("review_status", "approved");
     expect(titleQuery.eq).toHaveBeenCalledWith("media_sources.provider", "tmdb");
-    expect(titleQuery.neq).toHaveBeenCalledWith("id", "daily-answer-id");
     expect(titleQuery.gt).toHaveBeenCalledWith(
       "media_sources.tmdb_content_expires_at",
       expect.any(String),
     );
-    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "sw%");
-    expect(titleQuery.limit).toHaveBeenCalledWith(8);
+    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%sw%");
+    expect(titleQuery.limit).toHaveBeenCalledWith(64);
   });
 
   it("escapes wildcard characters in the search prefix", async () => {
@@ -84,6 +85,6 @@ describe("getTmdbMovieTitleSuggestions", () => {
 
     const client = supabaseMocks.createClient.mock.results[0].value;
     const titleQuery = client.from.mock.results[1].value;
-    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "s\\%\\_%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%s\\%\\_%");
   });
 });
