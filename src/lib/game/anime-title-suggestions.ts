@@ -19,7 +19,9 @@ export async function getAnimeTitleSuggestions(
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const [assignmentResult, titleResult] = await Promise.all([
+  const escapedQuery = query.replace(/[\\%_]/g, "\\$&");
+  const pattern = `%${escapedQuery}%`;
+  const [assignmentResult, titleResult, originalTitleResult, aliasResult] = await Promise.all([
     supabase
       .from("daily_puzzles")
       .select("media_id")
@@ -28,10 +30,26 @@ export async function getAnimeTitleSuggestions(
       .maybeSingle(),
     supabase
       .from("media")
-      .select("id, title")
+      .select("id, title, original_title")
       .eq("media_type", "anime")
       .eq("review_status", "approved")
-      .ilike("title", `%${query.replace(/[\\%_]/g, "\\$&")}%`)
+      .ilike("title", pattern)
+      .order("title", { ascending: true })
+      .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
+    supabase
+      .from("media")
+      .select("id, title, original_title")
+      .eq("media_type", "anime")
+      .eq("review_status", "approved")
+      .ilike("original_title", pattern)
+      .order("title", { ascending: true })
+      .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
+    supabase
+      .from("media")
+      .select("id, title, original_title, media_aliases!inner(alias)")
+      .eq("media_type", "anime")
+      .eq("review_status", "approved")
+      .ilike("media_aliases.alias", pattern)
       .order("title", { ascending: true })
       .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
   ]);
@@ -47,5 +65,20 @@ export async function getAnimeTitleSuggestions(
     throw new Error(`Supabase anime title search failed: ${titleResult.error.message}`);
   }
 
-  return rankTitleSuggestions(titleResult.data ?? [], activeAnswerId, query);
+  if (originalTitleResult.error) {
+    throw new Error(`Supabase anime original title search failed: ${originalTitleResult.error.message}`);
+  }
+  if (aliasResult.error) {
+    throw new Error(`Supabase anime alias search failed: ${aliasResult.error.message}`);
+  }
+
+  return rankTitleSuggestions(
+    [
+      ...(titleResult.data ?? []),
+      ...(originalTitleResult.data ?? []),
+      ...(aliasResult.data ?? []),
+    ],
+    activeAnswerId,
+    query,
+  );
 }

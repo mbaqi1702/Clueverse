@@ -86,12 +86,35 @@ describe("getAnimeTitleSuggestions", () => {
     expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%a\\%\\_%");
   });
 
+  it("searches original titles and aliases", async () => {
+    supabaseMocks.titleLimit.mockResolvedValue({
+      data: [
+        {
+          id: "anime-id",
+          title: "Cowboy Bebop",
+          original_title: "カウボーイビバップ",
+          media_aliases: [{ alias: "カウボーイビバップ" }],
+        },
+      ],
+      error: null,
+    });
+
+    await expect(getAnimeTitleSuggestions("カウボーイ", "2026-10-11")).resolves.toEqual([
+      "Cowboy Bebop",
+    ]);
+
+    const client = supabaseMocks.createClient.mock.results[0].value;
+    const titleQuery = client.from.mock.results[1].value;
+    expect(titleQuery.ilike).toHaveBeenCalledWith("original_title", "%カウボーイ%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("media_aliases.alias", "%カウボーイ%");
+  });
+
   it("surfaces a missing daily assignment instead of searching the answer catalog", async () => {
     supabaseMocks.assignmentMaybeSingle.mockResolvedValue({ data: null, error: null });
 
     await expect(getAnimeTitleSuggestions("a", "2026-10-11")).rejects.toThrow(
       "No approved puzzle is scheduled for 2026-10-11 (UTC).",
     );
-    expect(supabaseMocks.titleLimit).toHaveBeenCalledOnce();
+    expect(supabaseMocks.titleLimit).toHaveBeenCalledTimes(3);
   });
 });

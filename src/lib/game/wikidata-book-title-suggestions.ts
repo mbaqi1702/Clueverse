@@ -19,7 +19,9 @@ export async function getWikidataBookTitleSuggestions(
   const supabase = createClient(supabaseUrl, supabaseSecret, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const [assignmentResult, titleResult] = await Promise.all([
+  const escapedQuery = query.replace(/[\\%_]/g, "\\$&");
+  const pattern = `%${escapedQuery}%`;
+  const [assignmentResult, titleResult, originalTitleResult, aliasResult] = await Promise.all([
     supabase.rpc("get_or_create_daily_wikidata_novel_puzzle", {
       p_puzzle_date: puzzleDate,
     }),
@@ -28,6 +30,7 @@ export async function getWikidataBookTitleSuggestions(
       .select(`
         id,
         title,
+        original_title,
         media_sources!inner(provider),
         media_book_details!inner(first_publication_year),
         media_genres!inner(genre_id),
@@ -37,7 +40,44 @@ export async function getWikidataBookTitleSuggestions(
       .eq("review_status", "approved")
       .eq("format", "novel")
       .eq("media_sources.provider", "wikidata")
-      .ilike("title", `%${query.replace(/[\\%_]/g, "\\$&")}%`)
+      .ilike("title", pattern)
+      .order("title", { ascending: true })
+      .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
+    supabase
+      .from("media")
+      .select(`
+        id,
+        title,
+        original_title,
+        media_sources!inner(provider),
+        media_book_details!inner(first_publication_year),
+        media_genres!inner(genre_id),
+        media_book_authors!inner(author_id)
+      `)
+      .eq("media_type", "book")
+      .eq("review_status", "approved")
+      .eq("format", "novel")
+      .eq("media_sources.provider", "wikidata")
+      .ilike("original_title", pattern)
+      .order("title", { ascending: true })
+      .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
+    supabase
+      .from("media")
+      .select(`
+        id,
+        title,
+        original_title,
+        media_aliases!inner(alias),
+        media_sources!inner(provider),
+        media_book_details!inner(first_publication_year),
+        media_genres!inner(genre_id),
+        media_book_authors!inner(author_id)
+      `)
+      .eq("media_type", "book")
+      .eq("review_status", "approved")
+      .eq("format", "novel")
+      .eq("media_sources.provider", "wikidata")
+      .ilike("media_aliases.alias", pattern)
       .order("title", { ascending: true })
       .limit(TITLE_SUGGESTION_CANDIDATE_LIMIT),
   ]);
@@ -52,5 +92,20 @@ export async function getWikidataBookTitleSuggestions(
     throw new Error(`Supabase book title search failed: ${titleResult.error.message}`);
   }
 
-  return rankTitleSuggestions(titleResult.data ?? [], assignmentResult.data, query);
+  if (originalTitleResult.error) {
+    throw new Error(`Supabase book original title search failed: ${originalTitleResult.error.message}`);
+  }
+  if (aliasResult.error) {
+    throw new Error(`Supabase book alias search failed: ${aliasResult.error.message}`);
+  }
+
+  return rankTitleSuggestions(
+    [
+      ...(titleResult.data ?? []),
+      ...(originalTitleResult.data ?? []),
+      ...(aliasResult.data ?? []),
+    ],
+    assignmentResult.data,
+    query,
+  );
 }

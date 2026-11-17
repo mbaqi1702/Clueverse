@@ -77,6 +77,8 @@ describe("getTmdbMovieTitleSuggestions", () => {
       expect.any(String),
     );
     expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%sw%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("original_title", "%sw%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("media_aliases.alias", "%sw%");
     expect(titleQuery.limit).toHaveBeenCalledWith(64);
   });
 

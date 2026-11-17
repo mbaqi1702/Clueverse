@@ -66,6 +66,8 @@ describe("getWikidataBookTitleSuggestions", () => {
     expect(titleQuery.eq).toHaveBeenCalledWith("format", "novel");
     expect(titleQuery.eq).toHaveBeenCalledWith("media_sources.provider", "wikidata");
     expect(titleQuery.ilike).toHaveBeenCalledWith("title", "%rev%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("original_title", "%rev%");
+    expect(titleQuery.ilike).toHaveBeenCalledWith("media_aliases.alias", "%rev%");
     expect(titleQuery.limit).toHaveBeenCalledWith(64);
   });
 
@@ -83,6 +85,6 @@ describe("getWikidataBookTitleSuggestions", () => {
     await expect(
       getWikidataBookTitleSuggestions("a", "2026-11-02"),
     ).rejects.toThrow("No approved book is scheduled for 2026-11-02 (UTC).");
-    expect(supabaseMocks.titleLimit).toHaveBeenCalledOnce();
+    expect(supabaseMocks.titleLimit).toHaveBeenCalledTimes(3);
   });
 });
