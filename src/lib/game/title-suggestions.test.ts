@@ -25,4 +25,29 @@ describe("rankTitleSuggestions", () => {
 
     expect(rankTitleSuggestions(rows, "not-present", "title")).toHaveLength(8);
   });
+
+  it("finds canonical titles using original titles and stored aliases", () => {
+    expect(
+      rankTitleSuggestions(
+        [{
+          id: "alias-title",
+          title: "Cowboy Bebop",
+          media_aliases: [{ alias: "カウボーイビバップ" }],
+        }],
+        "no-active-answer",
+        "カウボーイ",
+      ),
+    ).toEqual(["Cowboy Bebop"]);
+    expect(
+      rankTitleSuggestions(
+        [{
+          id: "original-title",
+          title: "Fullmetal Alchemist: Brotherhood",
+          original_title: "鋼の錬金術師",
+        }],
+        "no-active-answer",
+        "錬金術",
+      ),
+    ).toEqual(["Fullmetal Alchemist: Brotherhood"]);
+  });
 });
