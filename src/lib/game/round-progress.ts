@@ -67,7 +67,7 @@ function isGuessRecord(value: unknown): value is GuessRecord {
 }
 
 export function getRoundProgressKey(
-  vertical: "anime" | "movie" | "book",
+  vertical: "anime" | "movie" | "book" | "character",
   puzzle: PublicPuzzle,
 ): string {
   return [
