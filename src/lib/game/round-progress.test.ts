@@ -18,6 +18,9 @@ describe("round progress persistence", () => {
     expect(getRoundProgressKey("anime", puzzle)).not.toBe(
       getRoundProgressKey("movie", puzzle),
     );
+    expect(getRoundProgressKey("character", puzzle)).not.toBe(
+      getRoundProgressKey("anime", puzzle),
+    );
     expect(getRoundProgressKey("book", puzzle)).toContain("2026-10-17");
   });
 

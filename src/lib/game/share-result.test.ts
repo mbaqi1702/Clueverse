@@ -41,4 +41,16 @@ describe("formatShareResult", () => {
       }),
     ).toBe("ClueVerse - Books - 2026-10-16\nSolved in 2/5 attempts\nResults: Miss, Correct");
   });
+
+  it("formats an answer-free character result", () => {
+    expect(
+      formatShareResult({
+        vertical: "character",
+        date: "2026-11-17",
+        status: "won",
+        attempts: ["wrong", "correct"],
+        maxAttempts: 5,
+      }),
+    ).toBe("ClueVerse - Characters - 2026-11-17\nSolved in 2/5 attempts\nResults: Miss, Correct");
+  });
 });

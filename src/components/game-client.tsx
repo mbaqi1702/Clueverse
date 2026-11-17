@@ -15,7 +15,7 @@ import type { GameStatus, GuessRecord } from "@/lib/game/round-progress";
 import { formatShareResult } from "@/lib/game/share-result";
 
 type GameClientProps = {
-  vertical?: "anime" | "movie" | "book";
+  vertical?: "anime" | "movie" | "book" | "character";
 };
 
 const MAX_CACHED_SUGGESTION_QUERIES = 40;
@@ -39,10 +39,19 @@ function isPublicPuzzle(value: unknown): value is PublicPuzzle {
 export function GameClient({ vertical = "anime" }: GameClientProps) {
   const isMovie = vertical === "movie";
   const isBook = vertical === "book";
+  const isCharacter = vertical === "character";
   const isAnime = vertical === "anime";
-  const mediaName = isMovie ? "movie" : isBook ? "book" : "anime";
-  const titleName = isMovie ? "Movie title" : isBook ? "Book title" : "Anime title";
-  const todayEndpoint = isMovie
+  const mediaName = isMovie ? "movie" : isBook ? "book" : isCharacter ? "character" : "anime";
+  const titleName = isMovie
+    ? "Movie title"
+    : isBook
+      ? "Book title"
+      : isCharacter
+        ? "Character name"
+        : "Anime title";
+  const todayEndpoint = isCharacter
+    ? "/api/game/characters/today"
+    : isMovie
     ? "/api/game/movies/today"
     : isBook
       ? "/api/game/books/today"
@@ -144,6 +153,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
     const query = guess.trim();
     if (
       !puzzle ||
+      isCharacter ||
       !query ||
       query === dismissedSuggestionQuery ||
       status !== "playing"
@@ -196,7 +206,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [dismissedSuggestionQuery, guess, mediaName, puzzle, status, vertical]);
+  }, [dismissedSuggestionQuery, guess, isCharacter, mediaName, puzzle, status, vertical]);
 
   function retryLoadPuzzle() {
     setLoadError("");
@@ -377,15 +387,20 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
             <Link aria-current={isBook ? "page" : undefined} className="edition-link" href="/books">
               Books
             </Link>
+            <Link aria-current={isCharacter ? "page" : undefined} className="edition-link" href="/characters">
+              Characters
+            </Link>
           </nav>
         </div>
       </header>
 
       <main className="page-width game-page" id="main-content" aria-labelledby="page-title">
         <section className="page-intro">
-          <h1 id="page-title">Name the {mediaName}.</h1>
+          <h1 id="page-title">{isCharacter ? "Who’s that character?" : `Name the ${mediaName}.`}</h1>
           <p className="intro-copy">
-            Read the synopsis. Guess a title or skip to reveal another clue; skips use a guess.
+            {isCharacter
+              ? "Read the character brief and use the progressive clues to identify a classic literary character."
+              : "Read the synopsis. Guess a title or skip to reveal another clue; skips use a guess."}
           </p>
         </section>
 
@@ -396,7 +411,9 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
           </div>
 
           <section className="synopsis" aria-labelledby="synopsis-title">
-            <h2 className="section-label" id="synopsis-title">The synopsis</h2>
+            <h2 className="section-label" id="synopsis-title">
+              {isCharacter ? "Character brief" : "The synopsis"}
+            </h2>
             {loading ? (
               <p className="synopsis-copy" role="status">Loading today’s puzzle…</p>
             ) : loadError ? (
@@ -491,9 +508,9 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                     aria-activedescendant={
                       activeSuggestion >= 0 ? `${mediaName}-suggestion-${activeSuggestion}` : undefined
                     }
-                    aria-autocomplete="list"
-                    aria-controls={`${mediaName}-title-suggestions`}
-                    aria-expanded={suggestions.length > 0 || suggestionLoading || hasNoSuggestionResults}
+                    aria-autocomplete={isCharacter ? undefined : "list"}
+                    aria-controls={isCharacter ? undefined : `${mediaName}-title-suggestions`}
+                    aria-expanded={isCharacter ? undefined : suggestions.length > 0 || suggestionLoading || hasNoSuggestionResults}
                     autoComplete="off"
                     className="guess-input"
                     id={`${mediaName}-guess`}
@@ -507,13 +524,13 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
                       setSuggestionError("");
                       setActiveSuggestion(-1);
                     }}
-                    onKeyDown={handleGuessKeyDown}
+                    onKeyDown={isCharacter ? undefined : handleGuessKeyDown}
                     placeholder={titleName}
-                    role="combobox"
+                    role={isCharacter ? undefined : "combobox"}
                     value={guess}
                     disabled={loading || submitting || !progressReady}
                   />
-                  {(suggestions.length > 0 || suggestionLoading || hasNoSuggestionResults) && (
+                  {!isCharacter && (suggestions.length > 0 || suggestionLoading || hasNoSuggestionResults) && (
                     <ul
                       className="suggestion-list"
                       id={`${mediaName}-title-suggestions`}
@@ -627,7 +644,7 @@ export function GameClient({ vertical = "anime" }: GameClientProps) {
               </span>
             </div>
           ) : (
-            <span>Daily {isBook ? "book" : "anime"} puzzle</span>
+            <span>Daily {mediaName} puzzle</span>
           )}
         </div>
       </footer>
